@@ -2,10 +2,16 @@ package com.yamikhal.playeremotes.client.animation;
 
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.math.Axis;
+import com.yamikhal.playeremotes.anim.Bend;
 import com.yamikhal.playeremotes.anim.Part;
 import com.yamikhal.playeremotes.anim.Pose;
 import com.yamikhal.playeremotes.anim.PoseSolver;
+import com.yamikhal.playeremotes.client.PlayerEmotesClient;
 import net.minecraft.client.model.HumanoidModel;
+//? if >=1.21.11 {
+/*import net.minecraft.client.model.player.PlayerModel;
+*///?} else
+import net.minecraft.client.model.PlayerModel;
 import net.minecraft.client.model.geom.ModelPart;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.player.Player;
@@ -70,6 +76,66 @@ public final class EmoteRenderer {
             part.yRot = values[4];
             part.zRot = values[5];
         }
+
+        // MODEL_PARTS has the limbs last, in LIMBS order
+        boolean bendLimbs = PlayerEmotesClient.config().bendLimbs;
+        for (int i = 0; i < Part.LIMBS.length; i++) {
+            Part limb = Part.LIMBS[i];
+            Bend bend = bend(parts[parts.length - Part.LIMBS.length + i]);
+            int lower = limb.lower().ordinal();
+            float[] values = SOLVER.parts[lower];
+            if (bendLimbs && SOLVER.bent[lower]) {
+                bend.set(limb.jointY(), values[3], values[4], values[5]);
+            } else {
+                bend.active = false;
+            }
+        }
+
+        // the outer skin layer bends with its limb
+        //? if >=1.21.2 {
+        /*if (model instanceof PlayerModel player) {
+        *///?} else
+        if (model instanceof PlayerModel<?> player) {
+            ((BendablePart) (Object) player.rightSleeve).playeremotes$setBend(bend(player.rightArm));
+            ((BendablePart) (Object) player.leftSleeve).playeremotes$setBend(bend(player.leftArm));
+            ((BendablePart) (Object) player.rightPants).playeremotes$setBend(bend(player.rightLeg));
+            ((BendablePart) (Object) player.leftPants).playeremotes$setBend(bend(player.leftLeg));
+        }
+    }
+
+    // the bend a model part is drawn with, null while it is straight or not a vanilla part (another mod draws it its own
+    // way, bending its cubes would distort them)
+    @Nullable
+    public static Bend activeBend(ModelPart part) {
+        Bend bend = ((BendablePart) (Object) part).playeremotes$bend();
+        return bend != null && bend.active && part.getClass() == ModelPart.class ? bend : null;
+    }
+
+    // moves the pose stack from a straight arm to its bent lower half, call after the model's translateToHand so held
+    // items follow the hand. the joint is where the hand item sits across the arm (see ItemInHandLayer)
+    public static void followLowerArm(PoseStack poseStack, ModelPart arm, boolean left) {
+        Bend bend = activeBend(arm);
+        if (bend == null) {
+            return;
+        }
+
+        float x = (left ? 1 : -1) / 16F;
+        float y = bend.jointY / 16F;
+        poseStack.translate(x, y, 0);
+        rotate(poseStack, new Quaternionf(bend.qx, bend.qy, bend.qz, bend.qw));
+        poseStack.translate(-x, -y, 0);
+    }
+
+    // the part's bend, made on first use
+    private static Bend bend(ModelPart part) {
+        BendablePart bendable = (BendablePart) (Object) part;
+        Bend bend = bendable.playeremotes$bend();
+        if (bend == null) {
+            bend = new Bend();
+            bendable.playeremotes$setBend(bend);
+        }
+
+        return bend;
     }
 
     // draws a player of a partner emote at their spot and facing (see PartnerLink) instead of where they stand, eased
@@ -122,6 +188,20 @@ public final class EmoteRenderer {
         model.body.zRot = 0;
         model.rightLeg.x = -1.9F;
         model.leftLeg.x = 1.9F;
+        for (ModelPart limb : new ModelPart[]{model.rightArm, model.leftArm, model.rightLeg, model.leftLeg}) {
+            Bend bend = ((BendablePart) (Object) limb).playeremotes$bend();
+            if (bend != null) {
+                bend.active = false;
+            }
+        }
+    }
+
+    // armor copies the pose of the player model (HumanoidModel#copyPropertiesTo), and its bends with it
+    public static void copyBends(HumanoidModel<?> from, HumanoidModel<?> to) {
+        ((BendablePart) (Object) to.rightArm).playeremotes$setBend(((BendablePart) (Object) from.rightArm).playeremotes$bend());
+        ((BendablePart) (Object) to.leftArm).playeremotes$setBend(((BendablePart) (Object) from.leftArm).playeremotes$bend());
+        ((BendablePart) (Object) to.rightLeg).playeremotes$setBend(((BendablePart) (Object) from.rightLeg).playeremotes$bend());
+        ((BendablePart) (Object) to.leftLeg).playeremotes$setBend(((BendablePart) (Object) from.leftLeg).playeremotes$bend());
     }
     //?}
 
@@ -176,6 +256,15 @@ public final class EmoteRenderer {
         stack.translate(values[0] / 16F, values[1] / 16F, values[2] / 16F);
         rotate(stack, new Quaternionf().rotationZYX(values[5], values[4], values[3]));
         float[] end = LOCATOR_ENDS[part.ordinal()];
+        // hands and feet follow a bent limb's lower half, which turns around the joint in the middle of the limb
+        if (part.isLimb() && SOLVER.bent[part.lower().ordinal()] && PlayerEmotesClient.config().bendLimbs) {
+            float[] bend = SOLVER.parts[part.lower().ordinal()];
+            float jointY = part.jointY() / 16F;
+            stack.translate(end[0] / 16F, jointY, end[2] / 16F);
+            rotate(stack, new Quaternionf().rotationZYX(bend[5], bend[4], bend[3]));
+            stack.translate(-end[0] / 16F, -jointY, -end[2] / 16F);
+        }
+
         Vector3f point = stack.last().pose().transformPosition(end[0] / 16F, end[1] / 16F, end[2] / 16F, new Vector3f());
         double baseX = link != null ? link.x() : player.getX();
         double baseZ = link != null ? link.z() : player.getZ();
@@ -210,6 +299,11 @@ public final class EmoteRenderer {
         }
 
         Part part = Part.byBoneName(name);
+        if (part != null && part.parent != null && part.parent.isLimb()) {
+            // a lower limb half names its limb's far end
+            return part.parent;
+        }
+
         return part == null || part == Part.BODY ? Part.TORSO : part;
     }
 

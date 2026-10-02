@@ -1,7 +1,10 @@
 package com.yamikhal.playeremotes.mixin.client;
 
+import com.mojang.blaze3d.vertex.PoseStack;
 import com.yamikhal.playeremotes.client.animation.EmotePlayback;
 import com.yamikhal.playeremotes.client.animation.EmoteRenderer;
+import net.minecraft.client.model.HumanoidModel;
+import net.minecraft.world.entity.HumanoidArm;
 //? if >=1.21.11 {
 /*import net.minecraft.client.model.player.PlayerModel;
 *///?} else
@@ -70,4 +73,17 @@ public abstract class PlayerModelMixin {
         model.rightPants.copyFrom(model.rightLeg);
     }
     //?}
+
+    // held items and props sit in the hand of a bent arm
+    //? if >=1.21.9 {
+    /*@Inject(method = "translateToHand(Lnet/minecraft/client/renderer/entity/state/AvatarRenderState;Lnet/minecraft/world/entity/HumanoidArm;Lcom/mojang/blaze3d/vertex/PoseStack;)V", at = @At("TAIL"))
+    private void playeremotes$followLowerArm(AvatarRenderState state, HumanoidArm arm, PoseStack poseStack, CallbackInfo ci) {
+    *///?} else {
+    @Inject(method = "translateToHand(Lnet/minecraft/world/entity/HumanoidArm;Lcom/mojang/blaze3d/vertex/PoseStack;)V", at = @At("TAIL"))
+    private void playeremotes$followLowerArm(HumanoidArm arm, PoseStack poseStack, CallbackInfo ci) {
+    //?}
+        HumanoidModel<?> model = (HumanoidModel<?>) (Object) this;
+        boolean left = arm == HumanoidArm.LEFT;
+        EmoteRenderer.followLowerArm(poseStack, left ? model.leftArm : model.rightArm, left);
+    }
 }

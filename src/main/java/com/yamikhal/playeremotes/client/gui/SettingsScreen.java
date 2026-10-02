@@ -32,6 +32,8 @@ public class SettingsScreen extends EmoteScreen {
                     config -> config.showIcons = !config.showIcons),
             new Setting("playeremotes.settings.third_person", config -> config.thirdPersonEmotes,
                     config -> config.thirdPersonEmotes = !config.thirdPersonEmotes),
+            new Setting("playeremotes.settings.bend_limbs", config -> config.bendLimbs,
+                    config -> config.bendLimbs = !config.bendLimbs),
             new Setting("playeremotes.settings.hold_wheel", config -> config.holdToOpenWheel,
                     config -> config.holdToOpenWheel = !config.holdToOpenWheel),
             new Setting("playeremotes.settings.partner_requests", config -> config.acceptRequests, config -> {

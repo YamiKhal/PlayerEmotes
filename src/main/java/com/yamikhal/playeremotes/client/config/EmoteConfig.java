@@ -41,6 +41,8 @@ public final class EmoteConfig {
     public boolean showOtherEmotes = true;
     // switches to third person while emoting from first person
     public boolean thirdPersonEmotes = true;
+    // emotes may bend elbows and knees (see Bend), off draws every limb straight
+    public boolean bendLimbs = true;
     // the wheel shows while its key is held and plays the hovered emote on release
     public boolean holdToOpenWheel = false;
     // other players may ask to do partner emotes with us
@@ -109,6 +111,7 @@ public final class EmoteConfig {
             this.hearOtherSounds = getBoolean(json, "hearOtherSounds", this.hearOtherSounds);
             this.showOtherEmotes = getBoolean(json, "showOtherEmotes", this.showOtherEmotes);
             this.thirdPersonEmotes = getBoolean(json, "thirdPersonEmotes", this.thirdPersonEmotes);
+            this.bendLimbs = getBoolean(json, "bendLimbs", this.bendLimbs);
             this.holdToOpenWheel = getBoolean(json, "holdToOpenWheel", this.holdToOpenWheel);
             this.acceptRequests = getBoolean(json, "acceptRequests", this.acceptRequests);
             this.recentExpanded = getBoolean(json, "recentExpanded", this.recentExpanded);
@@ -148,6 +151,7 @@ public final class EmoteConfig {
         json.addProperty("hearOtherSounds", this.hearOtherSounds);
         json.addProperty("showOtherEmotes", this.showOtherEmotes);
         json.addProperty("thirdPersonEmotes", this.thirdPersonEmotes);
+        json.addProperty("bendLimbs", this.bendLimbs);
         json.addProperty("holdToOpenWheel", this.holdToOpenWheel);
         json.addProperty("acceptRequests", this.acceptRequests);
         json.addProperty("recentExpanded", this.recentExpanded);

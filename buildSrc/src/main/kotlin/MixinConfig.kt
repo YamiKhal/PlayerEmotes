@@ -8,6 +8,7 @@ object MixinConfig {
     fun properties(mc: String, java: JavaVersion, refmap: Boolean): Map<String, String> {
         val client = buildList {
             add("HumanoidModelMixin")
+            add("ModelPartMixin")
             add("PlayerModelMixin")
             add("PlayerRendererMixin")
             // Cape and elytra bend with the torso (from 1.21.2 on the cape does that by itself); emote props

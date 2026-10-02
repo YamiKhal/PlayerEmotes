@@ -28,6 +28,7 @@ bin/
 
 # dev run directories
 run/
+mcd/
 
 # java
 hs_err_*.log

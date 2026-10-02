@@ -72,5 +72,11 @@ public abstract class HumanoidModelMixin {
         EmoteRenderer.poseModel((HumanoidModel<?>) (Object) this, frame);
         this.hat.copyFrom(this.head);
     }
+
+    // armor is posed by copying the player model, which bends its limbs too
+    @Inject(method = "copyPropertiesTo(Lnet/minecraft/client/model/HumanoidModel;)V", at = @At("TAIL"))
+    private void playeremotes$copyBends(HumanoidModel<?> other, CallbackInfo ci) {
+        EmoteRenderer.copyBends((HumanoidModel<?>) (Object) this, other);
+    }
     //?}
 }

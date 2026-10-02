@@ -3,14 +3,18 @@ package com.yamikhal.playeremotes.anim;
 // turns an evaluated Pose into values for Minecraft's (flat) player model parts. vanilla model parts have no hierarchy,
 // so the skeleton hierarchy (arms and head follow the torso) is resolved here with matrices and baked back into each
 // part's position and ZYX Euler rotation. channels an animation does not define keep the vanilla value (walk swing,
-// held-item poses, head look). not thread safe, one instance per render thread
+// held-item poses, head look). the lower limb halves only rotate, relative to their limb (see Bend). not thread
+// safe, one instance per render thread
 public final class PoseSolver {
 
     // pivot of the whole-body rotation in entity space (blocks above the feet)
     public static final double BODY_PIVOT_Y = (24 - Part.BODY.pivotY) / 16.0;
 
-    // x, y, z, xRot, yRot, zRot per part (Part#ordinal), vanilla values in, solved values out
+    // x, y, z, xRot, yRot, zRot per part (Part#ordinal), vanilla values in, solved values out. lower limb halves
+    // only get their rotation, already weighted
     public final float[][] parts = new float[Part.VALUES.length][6];
+    // whether the animation bends a limb, per lower limb half (Part#ordinal)
+    public final boolean[] bent = new boolean[Part.VALUES.length];
     // whole-body transform for the pose stack: translation in blocks and rotation in radians
     public final double[] bodyTranslation = new double[3];
     public final double[] bodyRotation = new double[3];
@@ -89,6 +93,16 @@ public final class PoseSolver {
             values[3] = lerpAngle(weight, values[3], this.euler[0]);
             values[4] = lerpAngle(weight, values[4], this.euler[1]);
             values[5] = lerpAngle(weight, values[5], this.euler[2]);
+        }
+
+        // a bend blends in from a straight limb, vanilla never bends one
+        for (Part part : Part.LOWER_LIMBS) {
+            float[] values = this.parts[part.ordinal()];
+            boolean bent = pose.hasRotation(part);
+            this.bent[part.ordinal()] = bent;
+            for (int axis = 0; axis < 3; axis++) {
+                values[3 + axis] = bent ? (float) (pose.rotation(part, axis) * weight) : 0;
+            }
         }
     }
 

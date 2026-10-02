@@ -38,6 +38,8 @@
   "key.playeremotes.reload": "Reload Emote Files",
   "playeremotes.settings.third_person": "Third Person While Emoting",
   "playeremotes.settings.third_person.tooltip": "Switches to third person when you start an emote in first person, and back when it ends",
+  "playeremotes.settings.bend_limbs": "Bend Elbows and Knees",
+  "playeremotes.settings.bend_limbs.tooltip": "Emotes made for it bend the arms and legs in the middle. Turn off if another mod draws limbs oddly while emoting",
   "playeremotes.settings.hold_wheel": "Hold to Open Wheel",
   "playeremotes.settings.hold_wheel.tooltip": "The wheel stays open while its key is held; release over an emote to play it. A quick tap keeps it open",
   "playeremotes.list.recent": "Recently Used",
