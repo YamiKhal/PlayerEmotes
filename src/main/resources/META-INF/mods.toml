@@ -1,0 +1,19 @@
+modLoader = "javafml"
+loaderVersion = "[${loader},)"
+license = "${license}"
+issueTrackerURL = "https://discord.gg/94Qk4MswX5"
+
+[[mods]]
+modId = "${id}"
+displayName = "${name}"
+version = "${version}"
+authors = "${authors}"
+description = "${description}"
+logoFile = "assets/playeremotes/icon.png"
+
+[[dependencies.${id}]]
+modId = "minecraft"
+mandatory = true
+versionRange = "${minecraft}"
+ordering = "NONE"
+side = "BOTH"

@@ -1,0 +1,118 @@
+{
+	"format_version": "1.8.0",
+	"animations": {
+		"high_five_intro": {
+			"loop": "hold_on_last_frame",
+			"animation_length": 0.35,
+			"bones": {
+				"right_arm": {
+					"rotation": {
+						"0.0": {
+							"vector": [
+								0,
+								0,
+								0
+							]
+						},
+						"0.35": {
+							"vector": [
+								-150,
+								-15,
+								0
+							]
+						}
+					}
+				}
+			}
+		},
+		"high_five": {
+			"animation_length": 1.1,
+			"bones": {
+				"right_arm": {
+					"rotation": {
+						"0.0": {
+							"vector": [
+								-150,
+								-15,
+								0
+							]
+						},
+						"0.15": {
+							"vector": [
+								-165,
+								-15,
+								0
+							]
+						},
+						"0.3": {
+							"vector": [
+								-115,
+								-15,
+								0
+							]
+						},
+						"0.6": {
+							"vector": [
+								-115,
+								-15,
+								0
+							]
+						},
+						"1.1": {
+							"vector": [
+								0,
+								0,
+								0
+							]
+						}
+					}
+				},
+				"torso": {
+					"rotation": {
+						"0.0": {
+							"vector": [
+								0,
+								0,
+								0
+							]
+						},
+						"0.3": {
+							"vector": [
+								5,
+								0,
+								0
+							]
+						},
+						"0.6": {
+							"vector": [
+								5,
+								0,
+								0
+							]
+						},
+						"1.1": {
+							"vector": [
+								0,
+								0,
+								0
+							]
+						}
+					}
+				}
+			},
+			"sound_effects": {
+				"0.3": {
+					"effect": "minecraft:entity.player.attack.crit",
+					"volume": 0.6,
+					"pitch": 1.4
+				}
+			},
+			"particle_effects": {
+				"0.3": {
+					"effect": "minecraft:crit",
+					"locator": "right_hand"
+				}
+			}
+		}
+	}
+}

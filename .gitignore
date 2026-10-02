@@ -1,0 +1,42 @@
+# gradle
+.gradle/
+build/
+out/
+classes/
+
+# stonecutter generated version projects keep their build dirs under versions/*/build
+versions/*/build/
+versions/*/.gradle/
+
+# eclipse
+*.launch
+
+# idea
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# vscode
+.settings/
+bin/
+.classpath
+.project
+
+# macos
+*.DS_Store
+
+# dev run directories
+run/
+
+# java
+hs_err_*.log
+replay_*.log
+*.hprof
+*.jfr
+
+# published jars of the lost original project (kept locally for reference only)
+original-jars/
+
+#temp
+README.md

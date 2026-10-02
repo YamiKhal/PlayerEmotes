@@ -1,0 +1,11 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "com.yamikhal.playeremotes.mixin",
+  "compatibilityLevel": "${java}",
+  ${refmap}
+  "client": [${client_mixins}],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

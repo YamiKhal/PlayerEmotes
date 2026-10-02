@@ -1,0 +1,208 @@
+{
+	"format_version": "1.8.0",
+	"animations": {
+		"partner_hug_intro": {
+			"loop": "hold_on_last_frame",
+			"animation_length": 0.4,
+			"bones": {
+				"right_arm": {
+					"rotation": {
+						"0.0": {
+							"vector": [
+								0,
+								0,
+								0
+							]
+						},
+						"0.4": {
+							"vector": [
+								-75,
+								30,
+								0
+							]
+						}
+					}
+				},
+				"left_arm": {
+					"rotation": {
+						"0.0": {
+							"vector": [
+								0,
+								0,
+								0
+							]
+						},
+						"0.4": {
+							"vector": [
+								-75,
+								-30,
+								0
+							]
+						}
+					}
+				},
+				"head": {
+					"rotation": {
+						"0.0": {
+							"vector": [
+								0,
+								0,
+								0
+							]
+						},
+						"0.4": {
+							"vector": [
+								-5,
+								0,
+								0
+							]
+						}
+					}
+				}
+			}
+		},
+		"partner_hug": {
+			"animation_length": 3.0,
+			"bones": {
+				"right_arm": {
+					"rotation": {
+						"0.0": {
+							"vector": [
+								-75,
+								30,
+								0
+							]
+						},
+						"0.35": {
+							"vector": [
+								-80,
+								-35,
+								0
+							]
+						},
+						"2.6": {
+							"vector": [
+								-80,
+								-35,
+								0
+							]
+						},
+						"3.0": {
+							"vector": [
+								0,
+								0,
+								0
+							]
+						}
+					}
+				},
+				"left_arm": {
+					"rotation": {
+						"0.0": {
+							"vector": [
+								-75,
+								-30,
+								0
+							]
+						},
+						"0.35": {
+							"vector": [
+								-80,
+								35,
+								0
+							]
+						},
+						"2.6": {
+							"vector": [
+								-80,
+								35,
+								0
+							]
+						},
+						"3.0": {
+							"vector": [
+								0,
+								0,
+								0
+							]
+						}
+					}
+				},
+				"torso": {
+					"rotation": {
+						"0.0": {
+							"vector": [
+								0,
+								0,
+								0
+							]
+						},
+						"0.35": {
+							"vector": [
+								6,
+								0,
+								0
+							]
+						},
+						"2.6": {
+							"vector": [
+								6,
+								0,
+								0
+							]
+						},
+						"3.0": {
+							"vector": [
+								0,
+								0,
+								0
+							]
+						}
+					}
+				},
+				"head": {
+					"rotation": {
+						"0.0": {
+							"vector": [
+								-5,
+								0,
+								0
+							]
+						},
+						"0.35": {
+							"vector": [
+								10,
+								0,
+								12
+							]
+						},
+						"2.6": {
+							"vector": [
+								10,
+								0,
+								12
+							]
+						},
+						"3.0": {
+							"vector": [
+								0,
+								0,
+								0
+							]
+						}
+					}
+				}
+			},
+			"particle_effects": {
+				"0.4": {
+					"effect": "minecraft:heart",
+					"locator": "head"
+				},
+				"1.4": {
+					"effect": "minecraft:heart",
+					"locator": "head"
+				}
+			}
+		}
+	}
+}

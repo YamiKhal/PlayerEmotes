@@ -1,0 +1,6 @@
+{
+  "pack": {
+    "description": "PlayerEmotes resources",
+    ${pack_format}
+  }
+}

@@ -1,0 +1,809 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "java",
+      "request": "launch",
+      "name": "1.20.1-forge - Client",
+      "presentation": {
+        "group": "Mod Development - 1.20.1-forge",
+        "order": 0
+      },
+      "projectName": "1.20.1-forge",
+      "mainClass": "net.neoforged.devlaunch.Main",
+      "args": [
+        "@D:\\Development\\Games\\Minecraft\\PlayerEmotes\\versions\\1.20.1-forge\\build\\moddev\\clientRunProgramArgs.txt"
+      ],
+      "vmArgs": [
+        "@D:\\Development\\Games\\Minecraft\\PlayerEmotes\\versions\\1.20.1-forge\\build\\moddev\\clientRunVmArgs.txt",
+        "-Dfml.modFolders\u003dplayeremotes%%D:\\Development\\Games\\Minecraft\\PlayerEmotes\\versions\\1.20.1-forge\\bin\\main"
+      ],
+      "cwd": "${workspaceFolder}\\run\\client",
+      "env": {
+        "MOD_CLASSES": "playeremotes%%D:\\Development\\Games\\Minecraft\\PlayerEmotes\\versions\\1.20.1-forge\\bin\\main"
+      },
+      "console": "internalConsole",
+      "shortenCommandLine": "none"
+    },
+    {
+      "type": "java",
+      "request": "launch",
+      "name": "1.20.1-forge - MpClientA",
+      "presentation": {
+        "group": "Mod Development - 1.20.1-forge",
+        "order": 1
+      },
+      "projectName": "1.20.1-forge",
+      "mainClass": "net.neoforged.devlaunch.Main",
+      "args": [
+        "@D:\\Development\\Games\\Minecraft\\PlayerEmotes\\versions\\1.20.1-forge\\build\\moddev\\mpClientARunProgramArgs.txt"
+      ],
+      "vmArgs": [
+        "@D:\\Development\\Games\\Minecraft\\PlayerEmotes\\versions\\1.20.1-forge\\build\\moddev\\mpClientARunVmArgs.txt",
+        "-Dfml.modFolders\u003dplayeremotes%%D:\\Development\\Games\\Minecraft\\PlayerEmotes\\versions\\1.20.1-forge\\bin\\main"
+      ],
+      "cwd": "${workspaceFolder}\\run\\client",
+      "env": {
+        "MOD_CLASSES": "playeremotes%%D:\\Development\\Games\\Minecraft\\PlayerEmotes\\versions\\1.20.1-forge\\bin\\main"
+      },
+      "console": "internalConsole",
+      "shortenCommandLine": "none"
+    },
+    {
+      "type": "java",
+      "request": "launch",
+      "name": "1.20.1-forge - MpClientB",
+      "presentation": {
+        "group": "Mod Development - 1.20.1-forge",
+        "order": 2
+      },
+      "projectName": "1.20.1-forge",
+      "mainClass": "net.neoforged.devlaunch.Main",
+      "args": [
+        "@D:\\Development\\Games\\Minecraft\\PlayerEmotes\\versions\\1.20.1-forge\\build\\moddev\\mpClientBRunProgramArgs.txt"
+      ],
+      "vmArgs": [
+        "@D:\\Development\\Games\\Minecraft\\PlayerEmotes\\versions\\1.20.1-forge\\build\\moddev\\mpClientBRunVmArgs.txt",
+        "-Dfml.modFolders\u003dplayeremotes%%D:\\Development\\Games\\Minecraft\\PlayerEmotes\\versions\\1.20.1-forge\\bin\\main"
+      ],
+      "cwd": "${workspaceFolder}\\run\\client2",
+      "env": {
+        "MOD_CLASSES": "playeremotes%%D:\\Development\\Games\\Minecraft\\PlayerEmotes\\versions\\1.20.1-forge\\bin\\main"
+      },
+      "console": "internalConsole",
+      "shortenCommandLine": "none"
+    },
+    {
+      "type": "java",
+      "request": "launch",
+      "name": "1.20.1-forge - MpServer",
+      "presentation": {
+        "group": "Mod Development - 1.20.1-forge",
+        "order": 3
+      },
+      "projectName": "1.20.1-forge",
+      "mainClass": "net.neoforged.devlaunch.Main",
+      "args": [
+        "@D:\\Development\\Games\\Minecraft\\PlayerEmotes\\versions\\1.20.1-forge\\build\\moddev\\mpServerRunProgramArgs.txt"
+      ],
+      "vmArgs": [
+        "@D:\\Development\\Games\\Minecraft\\PlayerEmotes\\versions\\1.20.1-forge\\build\\moddev\\mpServerRunVmArgs.txt",
+        "-Dfml.modFolders\u003dplayeremotes%%D:\\Development\\Games\\Minecraft\\PlayerEmotes\\versions\\1.20.1-forge\\bin\\main"
+      ],
+      "cwd": "${workspaceFolder}\\run\\server-1.20.1",
+      "env": {
+        "MOD_CLASSES": "playeremotes%%D:\\Development\\Games\\Minecraft\\PlayerEmotes\\versions\\1.20.1-forge\\bin\\main"
+      },
+      "console": "internalConsole",
+      "shortenCommandLine": "none"
+    },
+    {
+      "type": "java",
+      "request": "launch",
+      "name": "1.20.1-forge - Server",
+      "presentation": {
+        "group": "Mod Development - 1.20.1-forge",
+        "order": 4
+      },
+      "projectName": "1.20.1-forge",
+      "mainClass": "net.neoforged.devlaunch.Main",
+      "args": [
+        "@D:\\Development\\Games\\Minecraft\\PlayerEmotes\\versions\\1.20.1-forge\\build\\moddev\\serverRunProgramArgs.txt"
+      ],
+      "vmArgs": [
+        "@D:\\Development\\Games\\Minecraft\\PlayerEmotes\\versions\\1.20.1-forge\\build\\moddev\\serverRunVmArgs.txt",
+        "-Dfml.modFolders\u003dplayeremotes%%D:\\Development\\Games\\Minecraft\\PlayerEmotes\\versions\\1.20.1-forge\\bin\\main"
+      ],
+      "cwd": "${workspaceFolder}\\run\\server-1.20.1",
+      "env": {
+        "MOD_CLASSES": "playeremotes%%D:\\Development\\Games\\Minecraft\\PlayerEmotes\\versions\\1.20.1-forge\\bin\\main"
+      },
+      "console": "internalConsole",
+      "shortenCommandLine": "none"
+    },
+    {
+      "type": "java",
+      "request": "launch",
+      "name": "1.20.1-forge - Showcase",
+      "presentation": {
+        "group": "Mod Development - 1.20.1-forge",
+        "order": 5
+      },
+      "projectName": "1.20.1-forge",
+      "mainClass": "net.neoforged.devlaunch.Main",
+      "args": [
+        "@D:\\Development\\Games\\Minecraft\\PlayerEmotes\\versions\\1.20.1-forge\\build\\moddev\\showcaseRunProgramArgs.txt"
+      ],
+      "vmArgs": [
+        "@D:\\Development\\Games\\Minecraft\\PlayerEmotes\\versions\\1.20.1-forge\\build\\moddev\\showcaseRunVmArgs.txt",
+        "-Dfml.modFolders\u003dplayeremotes%%D:\\Development\\Games\\Minecraft\\PlayerEmotes\\versions\\1.20.1-forge\\bin\\main"
+      ],
+      "cwd": "${workspaceFolder}\\run\\client",
+      "env": {
+        "MOD_CLASSES": "playeremotes%%D:\\Development\\Games\\Minecraft\\PlayerEmotes\\versions\\1.20.1-forge\\bin\\main"
+      },
+      "console": "internalConsole",
+      "shortenCommandLine": "none"
+    },
+    {
+      "type": "java",
+      "request": "launch",
+      "name": "1.21.1-neoforge - Client",
+      "presentation": {
+        "group": "Mod Development - 1.21.1-neoforge",
+        "order": 0
+      },
+      "projectName": "1.21.1-neoforge",
+      "mainClass": "net.neoforged.devlaunch.Main",
+      "args": [
+        "@D:\\Development\\Games\\Minecraft\\PlayerEmotes\\versions\\1.21.1-neoforge\\build\\moddev\\clientRunProgramArgs.txt"
+      ],
+      "vmArgs": [
+        "@D:\\Development\\Games\\Minecraft\\PlayerEmotes\\versions\\1.21.1-neoforge\\build\\moddev\\clientRunVmArgs.txt",
+        "-Dfml.modFolders\u003dplayeremotes%%D:\\Development\\Games\\Minecraft\\PlayerEmotes\\versions\\1.21.1-neoforge\\bin\\main"
+      ],
+      "cwd": "${workspaceFolder}\\run\\client",
+      "env": {},
+      "console": "internalConsole",
+      "shortenCommandLine": "none"
+    },
+    {
+      "type": "java",
+      "request": "launch",
+      "name": "1.21.1-neoforge - MpClientA",
+      "presentation": {
+        "group": "Mod Development - 1.21.1-neoforge",
+        "order": 1
+      },
+      "projectName": "1.21.1-neoforge",
+      "mainClass": "net.neoforged.devlaunch.Main",
+      "args": [
+        "@D:\\Development\\Games\\Minecraft\\PlayerEmotes\\versions\\1.21.1-neoforge\\build\\moddev\\mpClientARunProgramArgs.txt"
+      ],
+      "vmArgs": [
+        "@D:\\Development\\Games\\Minecraft\\PlayerEmotes\\versions\\1.21.1-neoforge\\build\\moddev\\mpClientARunVmArgs.txt",
+        "-Dfml.modFolders\u003dplayeremotes%%D:\\Development\\Games\\Minecraft\\PlayerEmotes\\versions\\1.21.1-neoforge\\bin\\main"
+      ],
+      "cwd": "${workspaceFolder}\\run\\client",
+      "env": {},
+      "console": "internalConsole",
+      "shortenCommandLine": "none"
+    },
+    {
+      "type": "java",
+      "request": "launch",
+      "name": "1.21.1-neoforge - MpClientB",
+      "presentation": {
+        "group": "Mod Development - 1.21.1-neoforge",
+        "order": 2
+      },
+      "projectName": "1.21.1-neoforge",
+      "mainClass": "net.neoforged.devlaunch.Main",
+      "args": [
+        "@D:\\Development\\Games\\Minecraft\\PlayerEmotes\\versions\\1.21.1-neoforge\\build\\moddev\\mpClientBRunProgramArgs.txt"
+      ],
+      "vmArgs": [
+        "@D:\\Development\\Games\\Minecraft\\PlayerEmotes\\versions\\1.21.1-neoforge\\build\\moddev\\mpClientBRunVmArgs.txt",
+        "-Dfml.modFolders\u003dplayeremotes%%D:\\Development\\Games\\Minecraft\\PlayerEmotes\\versions\\1.21.1-neoforge\\bin\\main"
+      ],
+      "cwd": "${workspaceFolder}\\run\\client2",
+      "env": {},
+      "console": "internalConsole",
+      "shortenCommandLine": "none"
+    },
+    {
+      "type": "java",
+      "request": "launch",
+      "name": "1.21.1-neoforge - MpServer",
+      "presentation": {
+        "group": "Mod Development - 1.21.1-neoforge",
+        "order": 3
+      },
+      "projectName": "1.21.1-neoforge",
+      "mainClass": "net.neoforged.devlaunch.Main",
+      "args": [
+        "@D:\\Development\\Games\\Minecraft\\PlayerEmotes\\versions\\1.21.1-neoforge\\build\\moddev\\mpServerRunProgramArgs.txt"
+      ],
+      "vmArgs": [
+        "@D:\\Development\\Games\\Minecraft\\PlayerEmotes\\versions\\1.21.1-neoforge\\build\\moddev\\mpServerRunVmArgs.txt",
+        "-Dfml.modFolders\u003dplayeremotes%%D:\\Development\\Games\\Minecraft\\PlayerEmotes\\versions\\1.21.1-neoforge\\bin\\main"
+      ],
+      "cwd": "${workspaceFolder}\\run\\server-1.21.1",
+      "env": {},
+      "console": "internalConsole",
+      "shortenCommandLine": "none"
+    },
+    {
+      "type": "java",
+      "request": "launch",
+      "name": "1.21.1-neoforge - Server",
+      "presentation": {
+        "group": "Mod Development - 1.21.1-neoforge",
+        "order": 4
+      },
+      "projectName": "1.21.1-neoforge",
+      "mainClass": "net.neoforged.devlaunch.Main",
+      "args": [
+        "@D:\\Development\\Games\\Minecraft\\PlayerEmotes\\versions\\1.21.1-neoforge\\build\\moddev\\serverRunProgramArgs.txt"
+      ],
+      "vmArgs": [
+        "@D:\\Development\\Games\\Minecraft\\PlayerEmotes\\versions\\1.21.1-neoforge\\build\\moddev\\serverRunVmArgs.txt",
+        "-Dfml.modFolders\u003dplayeremotes%%D:\\Development\\Games\\Minecraft\\PlayerEmotes\\versions\\1.21.1-neoforge\\bin\\main"
+      ],
+      "cwd": "${workspaceFolder}\\run\\server-1.21.1",
+      "env": {},
+      "console": "internalConsole",
+      "shortenCommandLine": "none"
+    },
+    {
+      "type": "java",
+      "request": "launch",
+      "name": "1.21.1-neoforge - Showcase",
+      "presentation": {
+        "group": "Mod Development - 1.21.1-neoforge",
+        "order": 5
+      },
+      "projectName": "1.21.1-neoforge",
+      "mainClass": "net.neoforged.devlaunch.Main",
+      "args": [
+        "@D:\\Development\\Games\\Minecraft\\PlayerEmotes\\versions\\1.21.1-neoforge\\build\\moddev\\showcaseRunProgramArgs.txt"
+      ],
+      "vmArgs": [
+        "@D:\\Development\\Games\\Minecraft\\PlayerEmotes\\versions\\1.21.1-neoforge\\build\\moddev\\showcaseRunVmArgs.txt",
+        "-Dfml.modFolders\u003dplayeremotes%%D:\\Development\\Games\\Minecraft\\PlayerEmotes\\versions\\1.21.1-neoforge\\bin\\main"
+      ],
+      "cwd": "${workspaceFolder}\\run\\client",
+      "env": {},
+      "console": "internalConsole",
+      "shortenCommandLine": "none"
+    },
+    {
+      "type": "java",
+      "request": "launch",
+      "name": "1.21.11-neoforge - Client",
+      "presentation": {
+        "group": "Mod Development - 1.21.11-neoforge",
+        "order": 0
+      },
+      "projectName": "1.21.11-neoforge",
+      "mainClass": "net.neoforged.devlaunch.Main",
+      "args": [
+        "@D:\\Development\\Games\\Minecraft\\PlayerEmotes\\versions\\1.21.11-neoforge\\build\\moddev\\clientRunProgramArgs.txt"
+      ],
+      "vmArgs": [
+        "@D:\\Development\\Games\\Minecraft\\PlayerEmotes\\versions\\1.21.11-neoforge\\build\\moddev\\clientRunVmArgs.txt",
+        "-Dfml.modFolders\u003dplayeremotes%%D:\\Development\\Games\\Minecraft\\PlayerEmotes\\versions\\1.21.11-neoforge\\bin\\main"
+      ],
+      "cwd": "${workspaceFolder}\\run\\client",
+      "env": {},
+      "console": "internalConsole",
+      "shortenCommandLine": "none"
+    },
+    {
+      "type": "java",
+      "request": "launch",
+      "name": "1.21.11-neoforge - MpClientA",
+      "presentation": {
+        "group": "Mod Development - 1.21.11-neoforge",
+        "order": 1
+      },
+      "projectName": "1.21.11-neoforge",
+      "mainClass": "net.neoforged.devlaunch.Main",
+      "args": [
+        "@D:\\Development\\Games\\Minecraft\\PlayerEmotes\\versions\\1.21.11-neoforge\\build\\moddev\\mpClientARunProgramArgs.txt"
+      ],
+      "vmArgs": [
+        "@D:\\Development\\Games\\Minecraft\\PlayerEmotes\\versions\\1.21.11-neoforge\\build\\moddev\\mpClientARunVmArgs.txt",
+        "-Dfml.modFolders\u003dplayeremotes%%D:\\Development\\Games\\Minecraft\\PlayerEmotes\\versions\\1.21.11-neoforge\\bin\\main"
+      ],
+      "cwd": "${workspaceFolder}\\run\\client",
+      "env": {},
+      "console": "internalConsole",
+      "shortenCommandLine": "none"
+    },
+    {
+      "type": "java",
+      "request": "launch",
+      "name": "1.21.11-neoforge - MpClientB",
+      "presentation": {
+        "group": "Mod Development - 1.21.11-neoforge",
+        "order": 2
+      },
+      "projectName": "1.21.11-neoforge",
+      "mainClass": "net.neoforged.devlaunch.Main",
+      "args": [
+        "@D:\\Development\\Games\\Minecraft\\PlayerEmotes\\versions\\1.21.11-neoforge\\build\\moddev\\mpClientBRunProgramArgs.txt"
+      ],
+      "vmArgs": [
+        "@D:\\Development\\Games\\Minecraft\\PlayerEmotes\\versions\\1.21.11-neoforge\\build\\moddev\\mpClientBRunVmArgs.txt",
+        "-Dfml.modFolders\u003dplayeremotes%%D:\\Development\\Games\\Minecraft\\PlayerEmotes\\versions\\1.21.11-neoforge\\bin\\main"
+      ],
+      "cwd": "${workspaceFolder}\\run\\client2",
+      "env": {},
+      "console": "internalConsole",
+      "shortenCommandLine": "none"
+    },
+    {
+      "type": "java",
+      "request": "launch",
+      "name": "1.21.11-neoforge - MpServer",
+      "presentation": {
+        "group": "Mod Development - 1.21.11-neoforge",
+        "order": 3
+      },
+      "projectName": "1.21.11-neoforge",
+      "mainClass": "net.neoforged.devlaunch.Main",
+      "args": [
+        "@D:\\Development\\Games\\Minecraft\\PlayerEmotes\\versions\\1.21.11-neoforge\\build\\moddev\\mpServerRunProgramArgs.txt"
+      ],
+      "vmArgs": [
+        "@D:\\Development\\Games\\Minecraft\\PlayerEmotes\\versions\\1.21.11-neoforge\\build\\moddev\\mpServerRunVmArgs.txt",
+        "-Dfml.modFolders\u003dplayeremotes%%D:\\Development\\Games\\Minecraft\\PlayerEmotes\\versions\\1.21.11-neoforge\\bin\\main"
+      ],
+      "cwd": "${workspaceFolder}\\run\\server-1.21.11",
+      "env": {},
+      "console": "internalConsole",
+      "shortenCommandLine": "none"
+    },
+    {
+      "type": "java",
+      "request": "launch",
+      "name": "1.21.11-neoforge - Server",
+      "presentation": {
+        "group": "Mod Development - 1.21.11-neoforge",
+        "order": 4
+      },
+      "projectName": "1.21.11-neoforge",
+      "mainClass": "net.neoforged.devlaunch.Main",
+      "args": [
+        "@D:\\Development\\Games\\Minecraft\\PlayerEmotes\\versions\\1.21.11-neoforge\\build\\moddev\\serverRunProgramArgs.txt"
+      ],
+      "vmArgs": [
+        "@D:\\Development\\Games\\Minecraft\\PlayerEmotes\\versions\\1.21.11-neoforge\\build\\moddev\\serverRunVmArgs.txt",
+        "-Dfml.modFolders\u003dplayeremotes%%D:\\Development\\Games\\Minecraft\\PlayerEmotes\\versions\\1.21.11-neoforge\\bin\\main"
+      ],
+      "cwd": "${workspaceFolder}\\run\\server-1.21.11",
+      "env": {},
+      "console": "internalConsole",
+      "shortenCommandLine": "none"
+    },
+    {
+      "type": "java",
+      "request": "launch",
+      "name": "1.21.11-neoforge - Showcase",
+      "presentation": {
+        "group": "Mod Development - 1.21.11-neoforge",
+        "order": 5
+      },
+      "projectName": "1.21.11-neoforge",
+      "mainClass": "net.neoforged.devlaunch.Main",
+      "args": [
+        "@D:\\Development\\Games\\Minecraft\\PlayerEmotes\\versions\\1.21.11-neoforge\\build\\moddev\\showcaseRunProgramArgs.txt"
+      ],
+      "vmArgs": [
+        "@D:\\Development\\Games\\Minecraft\\PlayerEmotes\\versions\\1.21.11-neoforge\\build\\moddev\\showcaseRunVmArgs.txt",
+        "-Dfml.modFolders\u003dplayeremotes%%D:\\Development\\Games\\Minecraft\\PlayerEmotes\\versions\\1.21.11-neoforge\\bin\\main"
+      ],
+      "cwd": "${workspaceFolder}\\run\\client",
+      "env": {},
+      "console": "internalConsole",
+      "shortenCommandLine": "none"
+    },
+    {
+      "type": "java",
+      "request": "launch",
+      "name": "1.21.4-neoforge - Client",
+      "presentation": {
+        "group": "Mod Development - 1.21.4-neoforge",
+        "order": 0
+      },
+      "projectName": "1.21.4-neoforge",
+      "mainClass": "net.neoforged.devlaunch.Main",
+      "args": [
+        "@D:\\Development\\Games\\Minecraft\\PlayerEmotes\\versions\\1.21.4-neoforge\\build\\moddev\\clientRunProgramArgs.txt"
+      ],
+      "vmArgs": [
+        "@D:\\Development\\Games\\Minecraft\\PlayerEmotes\\versions\\1.21.4-neoforge\\build\\moddev\\clientRunVmArgs.txt",
+        "-Dfml.modFolders\u003dplayeremotes%%D:\\Development\\Games\\Minecraft\\PlayerEmotes\\versions\\1.21.4-neoforge\\bin\\main"
+      ],
+      "cwd": "${workspaceFolder}\\run\\client",
+      "env": {},
+      "console": "internalConsole",
+      "shortenCommandLine": "none"
+    },
+    {
+      "type": "java",
+      "request": "launch",
+      "name": "1.21.4-neoforge - MpClientA",
+      "presentation": {
+        "group": "Mod Development - 1.21.4-neoforge",
+        "order": 1
+      },
+      "projectName": "1.21.4-neoforge",
+      "mainClass": "net.neoforged.devlaunch.Main",
+      "args": [
+        "@D:\\Development\\Games\\Minecraft\\PlayerEmotes\\versions\\1.21.4-neoforge\\build\\moddev\\mpClientARunProgramArgs.txt"
+      ],
+      "vmArgs": [
+        "@D:\\Development\\Games\\Minecraft\\PlayerEmotes\\versions\\1.21.4-neoforge\\build\\moddev\\mpClientARunVmArgs.txt",
+        "-Dfml.modFolders\u003dplayeremotes%%D:\\Development\\Games\\Minecraft\\PlayerEmotes\\versions\\1.21.4-neoforge\\bin\\main"
+      ],
+      "cwd": "${workspaceFolder}\\run\\client",
+      "env": {},
+      "console": "internalConsole",
+      "shortenCommandLine": "none"
+    },
+    {
+      "type": "java",
+      "request": "launch",
+      "name": "1.21.4-neoforge - MpClientB",
+      "presentation": {
+        "group": "Mod Development - 1.21.4-neoforge",
+        "order": 2
+      },
+      "projectName": "1.21.4-neoforge",
+      "mainClass": "net.neoforged.devlaunch.Main",
+      "args": [
+        "@D:\\Development\\Games\\Minecraft\\PlayerEmotes\\versions\\1.21.4-neoforge\\build\\moddev\\mpClientBRunProgramArgs.txt"
+      ],
+      "vmArgs": [
+        "@D:\\Development\\Games\\Minecraft\\PlayerEmotes\\versions\\1.21.4-neoforge\\build\\moddev\\mpClientBRunVmArgs.txt",
+        "-Dfml.modFolders\u003dplayeremotes%%D:\\Development\\Games\\Minecraft\\PlayerEmotes\\versions\\1.21.4-neoforge\\bin\\main"
+      ],
+      "cwd": "${workspaceFolder}\\run\\client2",
+      "env": {},
+      "console": "internalConsole",
+      "shortenCommandLine": "none"
+    },
+    {
+      "type": "java",
+      "request": "launch",
+      "name": "1.21.4-neoforge - MpServer",
+      "presentation": {
+        "group": "Mod Development - 1.21.4-neoforge",
+        "order": 3
+      },
+      "projectName": "1.21.4-neoforge",
+      "mainClass": "net.neoforged.devlaunch.Main",
+      "args": [
+        "@D:\\Development\\Games\\Minecraft\\PlayerEmotes\\versions\\1.21.4-neoforge\\build\\moddev\\mpServerRunProgramArgs.txt"
+      ],
+      "vmArgs": [
+        "@D:\\Development\\Games\\Minecraft\\PlayerEmotes\\versions\\1.21.4-neoforge\\build\\moddev\\mpServerRunVmArgs.txt",
+        "-Dfml.modFolders\u003dplayeremotes%%D:\\Development\\Games\\Minecraft\\PlayerEmotes\\versions\\1.21.4-neoforge\\bin\\main"
+      ],
+      "cwd": "${workspaceFolder}\\run\\server-1.21.4",
+      "env": {},
+      "console": "internalConsole",
+      "shortenCommandLine": "none"
+    },
+    {
+      "type": "java",
+      "request": "launch",
+      "name": "1.21.4-neoforge - Server",
+      "presentation": {
+        "group": "Mod Development - 1.21.4-neoforge",
+        "order": 4
+      },
+      "projectName": "1.21.4-neoforge",
+      "mainClass": "net.neoforged.devlaunch.Main",
+      "args": [
+        "@D:\\Development\\Games\\Minecraft\\PlayerEmotes\\versions\\1.21.4-neoforge\\build\\moddev\\serverRunProgramArgs.txt"
+      ],
+      "vmArgs": [
+        "@D:\\Development\\Games\\Minecraft\\PlayerEmotes\\versions\\1.21.4-neoforge\\build\\moddev\\serverRunVmArgs.txt",
+        "-Dfml.modFolders\u003dplayeremotes%%D:\\Development\\Games\\Minecraft\\PlayerEmotes\\versions\\1.21.4-neoforge\\bin\\main"
+      ],
+      "cwd": "${workspaceFolder}\\run\\server-1.21.4",
+      "env": {},
+      "console": "internalConsole",
+      "shortenCommandLine": "none"
+    },
+    {
+      "type": "java",
+      "request": "launch",
+      "name": "1.21.4-neoforge - Showcase",
+      "presentation": {
+        "group": "Mod Development - 1.21.4-neoforge",
+        "order": 5
+      },
+      "projectName": "1.21.4-neoforge",
+      "mainClass": "net.neoforged.devlaunch.Main",
+      "args": [
+        "@D:\\Development\\Games\\Minecraft\\PlayerEmotes\\versions\\1.21.4-neoforge\\build\\moddev\\showcaseRunProgramArgs.txt"
+      ],
+      "vmArgs": [
+        "@D:\\Development\\Games\\Minecraft\\PlayerEmotes\\versions\\1.21.4-neoforge\\build\\moddev\\showcaseRunVmArgs.txt",
+        "-Dfml.modFolders\u003dplayeremotes%%D:\\Development\\Games\\Minecraft\\PlayerEmotes\\versions\\1.21.4-neoforge\\bin\\main"
+      ],
+      "cwd": "${workspaceFolder}\\run\\client",
+      "env": {},
+      "console": "internalConsole",
+      "shortenCommandLine": "none"
+    },
+    {
+      "type": "java",
+      "request": "launch",
+      "name": "26.1.2-neoforge - Client",
+      "presentation": {
+        "group": "Mod Development - 26.1.2-neoforge",
+        "order": 0
+      },
+      "projectName": "26.1.2-neoforge",
+      "mainClass": "net.neoforged.devlaunch.Main",
+      "args": [
+        "@D:\\Development\\Games\\Minecraft\\PlayerEmotes\\versions\\26.1.2-neoforge\\build\\moddev\\clientRunProgramArgs.txt"
+      ],
+      "vmArgs": [
+        "@D:\\Development\\Games\\Minecraft\\PlayerEmotes\\versions\\26.1.2-neoforge\\build\\moddev\\clientRunVmArgs.txt",
+        "-Dfml.modFolders\u003dplayeremotes%%D:\\Development\\Games\\Minecraft\\PlayerEmotes\\versions\\26.1.2-neoforge\\bin\\main"
+      ],
+      "cwd": "${workspaceFolder}\\run\\client",
+      "env": {},
+      "console": "internalConsole",
+      "shortenCommandLine": "none"
+    },
+    {
+      "type": "java",
+      "request": "launch",
+      "name": "26.1.2-neoforge - MpClientA",
+      "presentation": {
+        "group": "Mod Development - 26.1.2-neoforge",
+        "order": 1
+      },
+      "projectName": "26.1.2-neoforge",
+      "mainClass": "net.neoforged.devlaunch.Main",
+      "args": [
+        "@D:\\Development\\Games\\Minecraft\\PlayerEmotes\\versions\\26.1.2-neoforge\\build\\moddev\\mpClientARunProgramArgs.txt"
+      ],
+      "vmArgs": [
+        "@D:\\Development\\Games\\Minecraft\\PlayerEmotes\\versions\\26.1.2-neoforge\\build\\moddev\\mpClientARunVmArgs.txt",
+        "-Dfml.modFolders\u003dplayeremotes%%D:\\Development\\Games\\Minecraft\\PlayerEmotes\\versions\\26.1.2-neoforge\\bin\\main"
+      ],
+      "cwd": "${workspaceFolder}\\run\\client",
+      "env": {},
+      "console": "internalConsole",
+      "shortenCommandLine": "none"
+    },
+    {
+      "type": "java",
+      "request": "launch",
+      "name": "26.1.2-neoforge - MpClientB",
+      "presentation": {
+        "group": "Mod Development - 26.1.2-neoforge",
+        "order": 2
+      },
+      "projectName": "26.1.2-neoforge",
+      "mainClass": "net.neoforged.devlaunch.Main",
+      "args": [
+        "@D:\\Development\\Games\\Minecraft\\PlayerEmotes\\versions\\26.1.2-neoforge\\build\\moddev\\mpClientBRunProgramArgs.txt"
+      ],
+      "vmArgs": [
+        "@D:\\Development\\Games\\Minecraft\\PlayerEmotes\\versions\\26.1.2-neoforge\\build\\moddev\\mpClientBRunVmArgs.txt",
+        "-Dfml.modFolders\u003dplayeremotes%%D:\\Development\\Games\\Minecraft\\PlayerEmotes\\versions\\26.1.2-neoforge\\bin\\main"
+      ],
+      "cwd": "${workspaceFolder}\\run\\client2",
+      "env": {},
+      "console": "internalConsole",
+      "shortenCommandLine": "none"
+    },
+    {
+      "type": "java",
+      "request": "launch",
+      "name": "26.1.2-neoforge - MpServer",
+      "presentation": {
+        "group": "Mod Development - 26.1.2-neoforge",
+        "order": 3
+      },
+      "projectName": "26.1.2-neoforge",
+      "mainClass": "net.neoforged.devlaunch.Main",
+      "args": [
+        "@D:\\Development\\Games\\Minecraft\\PlayerEmotes\\versions\\26.1.2-neoforge\\build\\moddev\\mpServerRunProgramArgs.txt"
+      ],
+      "vmArgs": [
+        "@D:\\Development\\Games\\Minecraft\\PlayerEmotes\\versions\\26.1.2-neoforge\\build\\moddev\\mpServerRunVmArgs.txt",
+        "-Dfml.modFolders\u003dplayeremotes%%D:\\Development\\Games\\Minecraft\\PlayerEmotes\\versions\\26.1.2-neoforge\\bin\\main"
+      ],
+      "cwd": "${workspaceFolder}\\run\\server-26.1.2",
+      "env": {},
+      "console": "internalConsole",
+      "shortenCommandLine": "none"
+    },
+    {
+      "type": "java",
+      "request": "launch",
+      "name": "26.1.2-neoforge - Server",
+      "presentation": {
+        "group": "Mod Development - 26.1.2-neoforge",
+        "order": 4
+      },
+      "projectName": "26.1.2-neoforge",
+      "mainClass": "net.neoforged.devlaunch.Main",
+      "args": [
+        "@D:\\Development\\Games\\Minecraft\\PlayerEmotes\\versions\\26.1.2-neoforge\\build\\moddev\\serverRunProgramArgs.txt"
+      ],
+      "vmArgs": [
+        "@D:\\Development\\Games\\Minecraft\\PlayerEmotes\\versions\\26.1.2-neoforge\\build\\moddev\\serverRunVmArgs.txt",
+        "-Dfml.modFolders\u003dplayeremotes%%D:\\Development\\Games\\Minecraft\\PlayerEmotes\\versions\\26.1.2-neoforge\\bin\\main"
+      ],
+      "cwd": "${workspaceFolder}\\run\\server-26.1.2",
+      "env": {},
+      "console": "internalConsole",
+      "shortenCommandLine": "none"
+    },
+    {
+      "type": "java",
+      "request": "launch",
+      "name": "26.1.2-neoforge - Showcase",
+      "presentation": {
+        "group": "Mod Development - 26.1.2-neoforge",
+        "order": 5
+      },
+      "projectName": "26.1.2-neoforge",
+      "mainClass": "net.neoforged.devlaunch.Main",
+      "args": [
+        "@D:\\Development\\Games\\Minecraft\\PlayerEmotes\\versions\\26.1.2-neoforge\\build\\moddev\\showcaseRunProgramArgs.txt"
+      ],
+      "vmArgs": [
+        "@D:\\Development\\Games\\Minecraft\\PlayerEmotes\\versions\\26.1.2-neoforge\\build\\moddev\\showcaseRunVmArgs.txt",
+        "-Dfml.modFolders\u003dplayeremotes%%D:\\Development\\Games\\Minecraft\\PlayerEmotes\\versions\\26.1.2-neoforge\\bin\\main"
+      ],
+      "cwd": "${workspaceFolder}\\run\\client",
+      "env": {},
+      "console": "internalConsole",
+      "shortenCommandLine": "none"
+    },
+    {
+      "type": "java",
+      "request": "launch",
+      "name": "26.3-neoforge - Client",
+      "presentation": {
+        "group": "Mod Development - 26.3-neoforge",
+        "order": 0
+      },
+      "projectName": "26.3-neoforge",
+      "mainClass": "net.neoforged.devlaunch.Main",
+      "args": [
+        "@D:\\Development\\Games\\Minecraft\\PlayerEmotes\\versions\\26.3-neoforge\\build\\moddev\\clientRunProgramArgs.txt"
+      ],
+      "vmArgs": [
+        "@D:\\Development\\Games\\Minecraft\\PlayerEmotes\\versions\\26.3-neoforge\\build\\moddev\\clientRunVmArgs.txt",
+        "-Dfml.modFolders\u003dplayeremotes%%D:\\Development\\Games\\Minecraft\\PlayerEmotes\\versions\\26.3-neoforge\\bin\\main"
+      ],
+      "cwd": "${workspaceFolder}\\run\\client",
+      "env": {},
+      "console": "internalConsole",
+      "shortenCommandLine": "none"
+    },
+    {
+      "type": "java",
+      "request": "launch",
+      "name": "26.3-neoforge - MpClientA",
+      "presentation": {
+        "group": "Mod Development - 26.3-neoforge",
+        "order": 1
+      },
+      "projectName": "26.3-neoforge",
+      "mainClass": "net.neoforged.devlaunch.Main",
+      "args": [
+        "@D:\\Development\\Games\\Minecraft\\PlayerEmotes\\versions\\26.3-neoforge\\build\\moddev\\mpClientARunProgramArgs.txt"
+      ],
+      "vmArgs": [
+        "@D:\\Development\\Games\\Minecraft\\PlayerEmotes\\versions\\26.3-neoforge\\build\\moddev\\mpClientARunVmArgs.txt",
+        "-Dfml.modFolders\u003dplayeremotes%%D:\\Development\\Games\\Minecraft\\PlayerEmotes\\versions\\26.3-neoforge\\bin\\main"
+      ],
+      "cwd": "${workspaceFolder}\\run\\client",
+      "env": {},
+      "console": "internalConsole",
+      "shortenCommandLine": "none"
+    },
+    {
+      "type": "java",
+      "request": "launch",
+      "name": "26.3-neoforge - MpClientB",
+      "presentation": {
+        "group": "Mod Development - 26.3-neoforge",
+        "order": 2
+      },
+      "projectName": "26.3-neoforge",
+      "mainClass": "net.neoforged.devlaunch.Main",
+      "args": [
+        "@D:\\Development\\Games\\Minecraft\\PlayerEmotes\\versions\\26.3-neoforge\\build\\moddev\\mpClientBRunProgramArgs.txt"
+      ],
+      "vmArgs": [
+        "@D:\\Development\\Games\\Minecraft\\PlayerEmotes\\versions\\26.3-neoforge\\build\\moddev\\mpClientBRunVmArgs.txt",
+        "-Dfml.modFolders\u003dplayeremotes%%D:\\Development\\Games\\Minecraft\\PlayerEmotes\\versions\\26.3-neoforge\\bin\\main"
+      ],
+      "cwd": "${workspaceFolder}\\run\\client2",
+      "env": {},
+      "console": "internalConsole",
+      "shortenCommandLine": "none"
+    },
+    {
+      "type": "java",
+      "request": "launch",
+      "name": "26.3-neoforge - MpServer",
+      "presentation": {
+        "group": "Mod Development - 26.3-neoforge",
+        "order": 3
+      },
+      "projectName": "26.3-neoforge",
+      "mainClass": "net.neoforged.devlaunch.Main",
+      "args": [
+        "@D:\\Development\\Games\\Minecraft\\PlayerEmotes\\versions\\26.3-neoforge\\build\\moddev\\mpServerRunProgramArgs.txt"
+      ],
+      "vmArgs": [
+        "@D:\\Development\\Games\\Minecraft\\PlayerEmotes\\versions\\26.3-neoforge\\build\\moddev\\mpServerRunVmArgs.txt",
+        "-Dfml.modFolders\u003dplayeremotes%%D:\\Development\\Games\\Minecraft\\PlayerEmotes\\versions\\26.3-neoforge\\bin\\main"
+      ],
+      "cwd": "${workspaceFolder}\\run\\server-26.3",
+      "env": {},
+      "console": "internalConsole",
+      "shortenCommandLine": "none"
+    },
+    {
+      "type": "java",
+      "request": "launch",
+      "name": "26.3-neoforge - Server",
+      "presentation": {
+        "group": "Mod Development - 26.3-neoforge",
+        "order": 4
+      },
+      "projectName": "26.3-neoforge",
+      "mainClass": "net.neoforged.devlaunch.Main",
+      "args": [
+        "@D:\\Development\\Games\\Minecraft\\PlayerEmotes\\versions\\26.3-neoforge\\build\\moddev\\serverRunProgramArgs.txt"
+      ],
+      "vmArgs": [
+        "@D:\\Development\\Games\\Minecraft\\PlayerEmotes\\versions\\26.3-neoforge\\build\\moddev\\serverRunVmArgs.txt",
+        "-Dfml.modFolders\u003dplayeremotes%%D:\\Development\\Games\\Minecraft\\PlayerEmotes\\versions\\26.3-neoforge\\bin\\main"
+      ],
+      "cwd": "${workspaceFolder}\\run\\server-26.3",
+      "env": {},
+      "console": "internalConsole",
+      "shortenCommandLine": "none"
+    },
+    {
+      "type": "java",
+      "request": "launch",
+      "name": "26.3-neoforge - Showcase",
+      "presentation": {
+        "group": "Mod Development - 26.3-neoforge",
+        "order": 5
+      },
+      "projectName": "26.3-neoforge",
+      "mainClass": "net.neoforged.devlaunch.Main",
+      "args": [
+        "@D:\\Development\\Games\\Minecraft\\PlayerEmotes\\versions\\26.3-neoforge\\build\\moddev\\showcaseRunProgramArgs.txt"
+      ],
+      "vmArgs": [
+        "@D:\\Development\\Games\\Minecraft\\PlayerEmotes\\versions\\26.3-neoforge\\build\\moddev\\showcaseRunVmArgs.txt",
+        "-Dfml.modFolders\u003dplayeremotes%%D:\\Development\\Games\\Minecraft\\PlayerEmotes\\versions\\26.3-neoforge\\bin\\main"
+      ],
+      "cwd": "${workspaceFolder}\\run\\client",
+      "env": {},
+      "console": "internalConsole",
+      "shortenCommandLine": "none"
+    }
+  ]
+}

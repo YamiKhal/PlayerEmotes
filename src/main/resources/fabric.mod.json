@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "id": "${id}",
+  "version": "${version}",
+  "name": "${name}",
+  "description": "${description}",
+  "authors": ["${authors}"],
+  "contact": {
+    "issues": "https://discord.gg/94Qk4MswX5",
+    "homepage": "https://discord.gg/94Qk4MswX5"
+  },
+  "license": "${license}",
+  "icon": "assets/playeremotes/icon.png",
+  "environment": "*",
+  "entrypoints": {
+    "main": ["com.yamikhal.playeremotes.fabric.PlayerEmotesFabric"],
+    "client": ["com.yamikhal.playeremotes.fabric.PlayerEmotesFabricClient"]
+  },
+  "mixins": ["playeremotes.mixins.json"],
+  "depends": {
+    "fabricloader": ">=${loader}",
+    "fabric-api": "*",
+    "minecraft": "${minecraft}"
+  }
+}

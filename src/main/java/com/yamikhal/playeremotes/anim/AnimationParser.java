@@ -1,0 +1,238 @@
+package com.yamikhal.playeremotes.anim;
+
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParseException;
+import com.google.gson.JsonPrimitive;
+
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.EnumMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+
+// reads Bedrock animation files as exported by Blockbench (*.animation.json). supported: animation_length, loop
+// (true, false, "hold_on_last_frame"), rotation/position channels as constants or keyframes, pre/post, lerp_mode
+// (linear, catmullrom, step), GeckoLib-style easing/easingArgs and Molang expressions as values, and sound_effects /
+// particle_effects keyframes. bones not in the Part skeleton and scale channels are ignored
+public final class AnimationParser {
+
+    private static final Molang.Expr ZERO = Molang.constant(0);
+
+    private AnimationParser() {}
+
+    // animations by lower-case name
+    public static Map<String, EmoteAnimation> parse(JsonObject root) {
+        JsonElement animations = root.get("animations");
+        if (animations == null || !animations.isJsonObject()) {
+            throw new JsonParseException("Not a Bedrock animation file (missing \"animations\")");
+        }
+
+        Map<String, EmoteAnimation> result = new LinkedHashMap<>();
+        for (Map.Entry<String, JsonElement> entry : animations.getAsJsonObject().entrySet()) {
+            String name = entry.getKey().toLowerCase(Locale.ROOT);
+            // Blockbench names animations "animation.model.name", allow referencing them by the last segment
+            if (name.startsWith("animation.")) {
+                name = name.substring(name.lastIndexOf('.') + 1);
+            }
+
+            try {
+                result.put(name, parseAnimation(name, entry.getValue().getAsJsonObject()));
+            } catch (RuntimeException e) {
+                throw new JsonParseException("Invalid animation '" + entry.getKey() + "': " + e.getMessage(), e);
+            }
+        }
+
+        return result;
+    }
+
+    private static EmoteAnimation parseAnimation(String name, JsonObject node) {
+        Map<Part, EmoteAnimation.Bone> bones = new EnumMap<>(Part.class);
+        double lastKeyframe = 0;
+        JsonElement bonesNode = node.get("bones");
+        if (bonesNode != null) {
+            for (Map.Entry<String, JsonElement> bone : bonesNode.getAsJsonObject().entrySet()) {
+                Part part = Part.byBoneName(bone.getKey());
+                if (part == null) continue;
+
+                JsonObject boneNode = bone.getValue().getAsJsonObject();
+                Channel rotation = readChannel(boneNode.get("rotation"));
+                Channel position = readChannel(boneNode.get("position"));
+                if (rotation == null && position == null) continue;
+
+                bones.put(part, new EmoteAnimation.Bone(rotation, position));
+                if (rotation != null) {
+                    lastKeyframe = Math.max(lastKeyframe, rotation.lastTime());
+                }
+
+                if (position != null) {
+                    lastKeyframe = Math.max(lastKeyframe, position.lastTime());
+                }
+            }
+        }
+
+        EmoteAnimation.LoopMode loop = EmoteAnimation.LoopMode.ONCE;
+        JsonElement loopNode = node.get("loop");
+        if (loopNode != null && loopNode.isJsonPrimitive()) {
+            JsonPrimitive primitive = loopNode.getAsJsonPrimitive();
+            if (primitive.isBoolean() && primitive.getAsBoolean()) {
+                loop = EmoteAnimation.LoopMode.LOOP;
+            } else if (primitive.isString() && primitive.getAsString().equals("hold_on_last_frame")) {
+                loop = EmoteAnimation.LoopMode.HOLD;
+            }
+        }
+
+        double length = node.has("animation_length") ? node.get("animation_length").getAsDouble() : lastKeyframe;
+        // a zero-length loop is a static pose, hold it instead of looping over nothing
+        if (loop == EmoteAnimation.LoopMode.LOOP && length <= 0) {
+            loop = EmoteAnimation.LoopMode.HOLD;
+        }
+
+        List<EmoteAnimation.Effect> effects = new ArrayList<>();
+        readEffects(node.get("sound_effects"), EmoteAnimation.Effect.Kind.SOUND, effects);
+        readEffects(node.get("particle_effects"), EmoteAnimation.Effect.Kind.PARTICLE, effects);
+        effects.removeIf(effect -> effect.time() < 0 || (length > 0 && effect.time() > length));
+        effects.sort(Comparator.comparingDouble(EmoteAnimation.Effect::time));
+        return new EmoteAnimation(name, length, loop, bones, List.copyOf(effects));
+    }
+
+    // {"0.5": {"effect": "minecraft:heart", "locator": "head"}}, a time may also hold an array of effects
+    private static void readEffects(JsonElement node, EmoteAnimation.Effect.Kind kind, List<EmoteAnimation.Effect> out) {
+        if (node == null || !node.isJsonObject()) {
+            return;
+        }
+
+        for (Map.Entry<String, JsonElement> entry : node.getAsJsonObject().entrySet()) {
+            double time = Double.parseDouble(entry.getKey());
+            JsonElement value = entry.getValue();
+            Iterable<JsonElement> list = value.isJsonArray() ? value.getAsJsonArray() : List.of(value);
+            for (JsonElement element : list) {
+                if (!element.isJsonObject()) continue;
+
+                JsonObject object = element.getAsJsonObject();
+                JsonElement effect = object.get("effect");
+                if (effect == null || !effect.isJsonPrimitive() || effect.getAsString().isBlank()) continue;
+
+                String locator = object.has("locator") ? object.get("locator").getAsString() : null;
+                float volume = object.has("volume") ? object.get("volume").getAsFloat() : 1;
+                float pitch = object.has("pitch") ? object.get("pitch").getAsFloat() : 1;
+                out.add(new EmoteAnimation.Effect(time, kind, effect.getAsString().trim().toLowerCase(Locale.ROOT), locator,
+                        Math.max(0, Math.min(1, volume)), Math.max(0.5F, Math.min(2, pitch))));
+            }
+        }
+    }
+
+    private static Channel readChannel(JsonElement node) {
+        if (node == null) {
+            return null;
+        }
+
+        List<Channel.Keyframe> frames = new ArrayList<>();
+        if (node.isJsonArray() || node.isJsonPrimitive()) {
+            Molang.Expr[] vector = vector(node);
+            frames.add(new Channel.Keyframe(0, vector, vector, Channel.Lerp.LINEAR, null, Double.NaN));
+        } else {
+            JsonObject object = node.getAsJsonObject();
+            if (object.has("vector")) {
+                // GeckoLib style single keyframe: { "vector": [...], "easing": ... }
+                frames.add(keyframe(0, object));
+            } else {
+                for (Map.Entry<String, JsonElement> entry : object.entrySet()) {
+                    double time = Double.parseDouble(entry.getKey());
+                    JsonElement value = entry.getValue();
+                    if (value.isJsonObject()) {
+                        frames.add(keyframe(time, value.getAsJsonObject()));
+                    } else {
+                        Molang.Expr[] vector = vector(value);
+                        frames.add(new Channel.Keyframe(time, vector, vector, Channel.Lerp.LINEAR, null, Double.NaN));
+                    }
+                }
+            }
+        }
+
+        return frames.isEmpty() ? null : new Channel(frames);
+    }
+
+    private static Channel.Keyframe keyframe(double time, JsonObject node) {
+        Molang.Expr[] main = node.has("vector") ? vector(node.get("vector")) : null;
+        Molang.Expr[] pre = node.has("pre") ? vector(unwrap(node.get("pre"))) : main;
+        Molang.Expr[] post = node.has("post") ? vector(unwrap(node.get("post"))) : main;
+        if (pre == null) {
+            pre = post;
+        }
+
+        if (post == null) {
+            post = pre;
+        }
+
+        if (pre == null) {
+            throw new JsonParseException("keyframe at " + time + " has no value");
+        }
+
+        Channel.Lerp lerp = Channel.Lerp.LINEAR;
+        if (node.has("lerp_mode")) {
+            lerp = switch (node.get("lerp_mode").getAsString().toLowerCase(Locale.ROOT)) {
+                case "catmullrom" -> Channel.Lerp.CATMULLROM;
+                case "step" -> Channel.Lerp.STEP;
+                default -> Channel.Lerp.LINEAR;
+            };
+        }
+
+        Ease easing = null;
+        double easingArg = Double.NaN;
+        if (node.has("easing")) {
+            String name = node.get("easing").getAsString();
+            easing = Ease.byName(name);
+            if (easing == null) {
+                throw new JsonParseException("unknown easing '" + name + "'");
+            }
+
+            if (easing == Ease.LINEAR) {
+                easing = null;
+            }
+        }
+
+        if (node.has("easingArgs")) {
+            JsonElement args = node.get("easingArgs");
+            JsonElement first = args.isJsonArray() ? (args.getAsJsonArray().isEmpty() ? null : args.getAsJsonArray().get(0)) : args;
+            if (first != null) {
+                easingArg = first.getAsDouble();
+            }
+        }
+
+        return new Channel.Keyframe(time, pre, post, lerp, easing, easingArg);
+    }
+
+    private static JsonElement unwrap(JsonElement element) {
+        return element.isJsonObject() ? element.getAsJsonObject().get("vector") : element;
+    }
+
+    // arrays of numbers or Molang strings, a single value applies to all three axes
+    private static Molang.Expr[] vector(JsonElement element) {
+        if (element.isJsonArray()) {
+            JsonArray array = element.getAsJsonArray();
+            Molang.Expr[] vector = new Molang.Expr[3];
+            for (int i = 0; i < 3; i++) {
+                vector[i] = i < array.size() ? value(array.get(i)) : ZERO;
+            }
+
+            return vector;
+        }
+
+        Molang.Expr single = value(element);
+        return new Molang.Expr[]{single, single, single};
+    }
+
+    private static Molang.Expr value(JsonElement element) {
+        JsonPrimitive primitive = element.getAsJsonPrimitive();
+        if (primitive.isNumber()) {
+            return Molang.constant(primitive.getAsDouble());
+        }
+
+        String source = primitive.getAsString().trim();
+        return source.isEmpty() ? ZERO : Molang.compile(source);
+    }
+}

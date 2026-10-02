@@ -1,0 +1,122 @@
+{
+  "name": "Default",
+  "description": "The emotes that come with PlayerEmotes.",
+  "author": "Yamikhal",
+  "emotes": {
+    "backflip": {
+      "look": false
+    },
+    "bow": {
+      "animations": [
+        "bow",
+        "bow2",
+        "bow3"
+      ],
+      "look": false
+    },
+    "cheer": {
+      "sound": "minecraft:entity.villager.celebrate"
+    },
+    "clap": {
+      "animations": [
+        "clap",
+        "clap2",
+        "clap3"
+      ]
+    },
+    "cry": {
+      "animations": [
+        "cry",
+        "cry2"
+      ],
+      "look": false
+    },
+    "facepalm": {
+      "animations": [
+        "facepalm",
+        "facepalm2",
+        "facepalm3"
+      ],
+      "look": false
+    },
+    "flex_muscle": {
+      "look": false
+    },
+    "head_nod": {
+      "look": false
+    },
+    "head_shake": {
+      "look": false
+    },
+    "hide_barrel": {
+      "look": false
+    },
+    "kneel": {
+      "animations": [
+        "kneel",
+        "kneel2",
+        "kneel3"
+      ],
+      "look": false
+    },
+    "laugh": {
+      "sound": {
+        "id": "minecraft:entity.witch.celebrate",
+        "volume": 0.8
+      }
+    },
+    "lay": {
+      "animations": [
+        "lay",
+        "lay2",
+        "lay3"
+      ],
+      "look": false
+    },
+    "lean": {
+      "selector": "lean",
+      "variants": {
+        "left": [
+          "lean_to_left"
+        ],
+        "right": [
+          "lean_to_right"
+        ],
+        "back": [
+          "lean_to_back"
+        ]
+      }
+    },
+    "point": {
+      "animations": [
+        "point",
+        "point2"
+      ]
+    },
+    "salute": {
+      "animations": [
+        "salute",
+        "salute2"
+      ]
+    },
+    "yawn": {
+      "look": false
+    },
+    "partner_hug": {
+      "look": false,
+      "partner": {
+        "intro": "partner_hug_intro",
+        "action": "partner_hug",
+        "distance": 0.6
+      }
+    },
+    "high_five": {
+      "look": false,
+      "partner": {
+        "intro": "high_five_intro",
+        "action": "high_five",
+        "distance": 0.9
+      }
+    }
+  }
+}
