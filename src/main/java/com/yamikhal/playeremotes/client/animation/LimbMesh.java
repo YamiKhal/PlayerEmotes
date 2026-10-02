@@ -13,7 +13,8 @@ import java.util.List;
 
 // one cube of a limb, cut at the joint and drawn bent (see Bend). baked once from what the cube itself draws, so UVs,
 // mirroring, inflation and left out faces stay vanilla's: faces crossing the joint are cut in two there, which adds
-// the joint ring. the joint is at the cube's center across, so a limb, its outer layer and its armor bend alike
+// the joint ring. the joint is at the cube's center across, so a limb, its outer layer and its armor bend alike. for
+// split bends each half gets a cap at the joint, copies of the cube's end faces, drawn only then
 public final class LimbMesh {
 
     private static final byte UPPER = 0;
@@ -28,6 +29,8 @@ public final class LimbMesh {
     private final float jointX;
     private final float jointZ;
     private final int quads;
+    // quads from here on are the joint caps
+    private final int caps;
     // x, y, z in pixels, u, v per vertex, four vertices per quad
     private final float[] vertices;
     private final byte[] sides;
@@ -36,11 +39,12 @@ public final class LimbMesh {
     private final boolean[] lowerNormals;
 
     private LimbMesh(float jointX, float jointY, float jointZ, List<float[][]> quads, List<byte[]> sides, List<float[]> normals,
-                     List<Boolean> lowerNormals) {
+                     List<Boolean> lowerNormals, int caps) {
         this.jointX = jointX;
         this.jointY = jointY;
         this.jointZ = jointZ;
         this.quads = quads.size();
+        this.caps = caps;
         this.vertices = new float[this.quads * 20];
         this.sides = new byte[this.quads * 4];
         this.normals = new float[this.quads * 3];
@@ -88,11 +92,15 @@ public final class LimbMesh {
 
         float minX = Float.MAX_VALUE;
         float maxX = -Float.MAX_VALUE;
+        float minY = Float.MAX_VALUE;
+        float maxY = -Float.MAX_VALUE;
         float minZ = Float.MAX_VALUE;
         float maxZ = -Float.MAX_VALUE;
         for (float[] vertex : recorder.vertices) {
             minX = Math.min(minX, vertex[0]);
             maxX = Math.max(maxX, vertex[0]);
+            minY = Math.min(minY, vertex[1]);
+            maxY = Math.max(maxY, vertex[1]);
             minZ = Math.min(minZ, vertex[2]);
             maxZ = Math.max(maxZ, vertex[2]);
         }
@@ -101,6 +109,8 @@ public final class LimbMesh {
         List<byte[]> sides = new ArrayList<>();
         List<float[]> normals = new ArrayList<>();
         List<Boolean> lowerNormals = new ArrayList<>();
+        List<float[][]> ends = new ArrayList<>(2);
+        boolean cut = false;
         int count = recorder.vertices.size() / 4 * 4;
         for (int start = 0; start < count; start += 4) {
             float[][] quad = new float[4][];
@@ -114,6 +124,10 @@ public final class LimbMesh {
             }
 
             float[] normal = {quad[0][5], quad[0][6], quad[0][7]};
+            if (isFlat(quad, minY) || isFlat(quad, maxY)) {
+                ends.add(quad);
+            }
+
             if (!upper || !lower) {
                 add(quads, sides, normals, lowerNormals, List.<float[][]>of(quad), jointY, normal, lower);
                 continue;
@@ -150,9 +164,28 @@ public final class LimbMesh {
 
             add(quads, sides, normals, lowerNormals, fan(top), jointY, normal, false);
             add(quads, sides, normals, lowerNormals, fan(bottom), jointY, normal, true);
+            cut = true;
         }
 
-        return new LimbMesh((minX + maxX) / 2, jointY, (minZ + maxZ) / 2, quads, sides, normals, lowerNormals);
+        // the top end closes the lower half at the joint and the bottom end the upper half, both facing out. caps sit a
+        // little inside their half, wider cubes further in, so the caps of the skin, its outer layer and armor do not
+        // flicker against each other
+        int caps = quads.size();
+        if (cut) {
+            float inset = Math.max(maxX - minX, maxZ - minZ) * 0.025F;
+            for (float[][] end : ends) {
+                float[][] cap = new float[4][];
+                for (int corner = 0; corner < 4; corner++) {
+                    cap[corner] = end[corner].clone();
+                    cap[corner][1] = isFlat(end, minY) ? jointY + inset : jointY - inset;
+                }
+
+                add(quads, sides, normals, lowerNormals, List.<float[][]>of(cap), jointY, new float[]{end[0][5], end[0][6], end[0][7]},
+                        isFlat(end, minY));
+            }
+        }
+
+        return new LimbMesh((minX + maxX) / 2, jointY, (minZ + maxZ) / 2, quads, sides, normals, lowerNormals, caps);
     }
 
     //? if >=1.21 {
@@ -161,7 +194,8 @@ public final class LimbMesh {
     /*public void render(PoseStack.Pose pose, VertexConsumer consumer, Bend bend, int light, int overlay, float red, float green, float blue, float alpha) {*/
         Matrix4f matrix = pose.pose();
         float[] lower = bend.lower;
-        for (int quad = 0; quad < this.quads; quad++) {
+        boolean split = bend.split;
+        for (int quad = 0, count = split ? this.quads : this.caps; quad < count; quad++) {
             float nx = this.normals[quad * 3];
             float ny = this.normals[quad * 3 + 1];
             float nz = this.normals[quad * 3 + 2];
@@ -184,8 +218,9 @@ public final class LimbMesh {
                 float y = this.vertices[i + 1];
                 float z = this.vertices[i + 2];
                 byte side = this.sides[vertex];
-                if (side != UPPER) {
-                    float[] m = side == LOWER ? lower : bend.ring;
+                // split: each half turns as one piece, joint vertices included
+                float[] m = split ? (this.lowerNormals[quad] ? lower : null) : side == UPPER ? null : side == LOWER ? lower : bend.ring;
+                if (m != null) {
                     float dx = x - this.jointX;
                     float dy = y - this.jointY;
                     float dz = z - this.jointZ;
@@ -202,6 +237,16 @@ public final class LimbMesh {
                 /*consumer.vertex(position.x(), position.y(), position.z(), red, green, blue, alpha, this.vertices[i + 3], this.vertices[i + 4], overlay, light, normal.x(), normal.y(), normal.z());*/
             }
         }
+    }
+
+    private static boolean isFlat(float[][] quad, float y) {
+        for (float[] vertex : quad) {
+            if (Math.abs(vertex[1] - y) > EPSILON) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     private static byte side(float y, float jointY) {

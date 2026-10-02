@@ -378,20 +378,24 @@ public final class EmoteNetwork {
     }
 
     // playback settings sent along with an animation, sound is null for silent emotes, prop is the item held during the
-    // emote, null for none
-    public record Options(boolean look, int blendInTicks, int blendOutTicks, @Nullable EmoteSound sound, @Nullable EmoteProp prop) {
+    // emote, null for none, splitLimbs draws bent limbs as two rigid halves. a flag older versions do not know is
+    // ignored by them, so new flags need no protocol change
+    public record Options(boolean look, boolean splitLimbs, int blendInTicks, int blendOutTicks, @Nullable EmoteSound sound,
+                          @Nullable EmoteProp prop) {
 
-        public static final Options DEFAULT = new Options(true, 3, 4, null, null);
+        public static final Options DEFAULT = new Options(true, false, 3, 4, null, null);
         private static final int LOOK = 1;
         private static final int SOUND = 2;
         private static final int PROP = 4;
+        private static final int SPLIT_LIMBS = 8;
 
         public Options withoutSound() {
-            return this.sound == null ? this : new Options(this.look, this.blendInTicks, this.blendOutTicks, null, this.prop);
+            return this.sound == null ? this : new Options(this.look, this.splitLimbs, this.blendInTicks, this.blendOutTicks, null, this.prop);
         }
 
         void write(FriendlyByteBuf buf) {
-            buf.writeByte((this.look ? LOOK : 0) | (this.sound != null ? SOUND : 0) | (this.prop != null ? PROP : 0));
+            buf.writeByte((this.look ? LOOK : 0) | (this.sound != null ? SOUND : 0) | (this.prop != null ? PROP : 0)
+                    | (this.splitLimbs ? SPLIT_LIMBS : 0));
             buf.writeByte(clampByte(this.blendInTicks));
             buf.writeByte(clampByte(this.blendOutTicks));
             if (this.sound != null) {
@@ -409,7 +413,7 @@ public final class EmoteNetwork {
             int blendOut = buf.readUnsignedByte();
             EmoteSound sound = (flags & SOUND) != 0 ? EmoteSound.read(buf) : null;
             EmoteProp prop = (flags & PROP) != 0 ? EmoteProp.read(buf) : null;
-            return new Options((flags & LOOK) != 0, blendIn, blendOut, sound, prop);
+            return new Options((flags & LOOK) != 0, (flags & SPLIT_LIMBS) != 0, blendIn, blendOut, sound, prop);
         }
 
         private static int clampByte(int value) {

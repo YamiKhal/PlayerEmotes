@@ -112,7 +112,7 @@ final class LocalEmotes {
             return;
         }
 
-        EmoteNetwork.Options options = new EmoteNetwork.Options(emote.look(), emote.blendInTicks(), emote.blendOutTicks(),
+        EmoteNetwork.Options options = new EmoteNetwork.Options(emote.look(), emote.splitLimbs(), emote.blendInTicks(), emote.blendOutTicks(),
                 PlayerEmotesClient.config().playEmoteSounds ? emote.sound() : null, emote.prop());
         EmotePlayback playback = EmotePlayers.start(player.getUUID(), emote.id(), animation, options, 0);
         if (options.sound() != null) {
@@ -222,7 +222,7 @@ final class LocalEmotes {
             return;
         }
 
-        EmoteNetwork.Options options = new EmoteNetwork.Options(emote.look(), emote.blendInTicks(), emote.blendOutTicks(),
+        EmoteNetwork.Options options = new EmoteNetwork.Options(emote.look(), emote.splitLimbs(), emote.blendInTicks(), emote.blendOutTicks(),
                 PlayerEmotesClient.config().playEmoteSounds ? emote.sound() : null, emote.prop());
         EmotePlayers.start(player.getUUID(), emote.id(), spec.intro(), options.withoutSound(), 0);
         partnership = 0;

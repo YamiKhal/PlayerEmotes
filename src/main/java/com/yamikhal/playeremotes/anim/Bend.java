@@ -3,8 +3,9 @@ package com.yamikhal.playeremotes.anim;
 // bends a limb at its joint (elbow, knee) by moving the vertices of its cubes, so the limb stays one closed mesh at
 // any angle. in model part space (pixels, Y down, the limb points to +Y): vertices above the joint stay, vertices
 // below it turn with the lower half around the joint, and the ring of vertices at the joint takes half of the turn,
-// stretched so it meets the sides of both halves (a mitre joint). one instance per limb model part, shared with the
-// limb's outer layer, reused every frame
+// stretched so it meets the sides of both halves (a mitre joint). split instead draws two rigid halves turning into
+// each other, each closed at the joint. one instance per limb model part, shared with the limb's outer layer, reused
+// every frame
 public final class Bend {
 
     // 1 / cos(angle / 2) of the ring stretch grows without bound as a limb folds, capped near 132 degrees
@@ -12,6 +13,8 @@ public final class Bend {
 
     // false while the limb is straight, it then renders like vanilla
     public boolean active;
+    // two rigid halves instead of one bent limb
+    public boolean split;
     // y of the joint below the part's pivot
     public float jointY;
     // rotation of the lower half and the linear map of the joint ring around the joint, row major 3x3
@@ -26,8 +29,9 @@ public final class Bend {
     private final float[] half = new float[9];
 
     // rotation in radians like a model part's (Z, then Y, then X)
-    public void set(float jointY, float xRot, float yRot, float zRot) {
+    public void set(float jointY, float xRot, float yRot, float zRot, boolean split) {
         this.active = true;
+        this.split = split;
         this.jointY = jointY;
         float cx = (float) Math.cos(xRot * 0.5);
         float sx = (float) Math.sin(xRot * 0.5);

@@ -20,6 +20,7 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 import java.util.TreeSet;
 
@@ -41,8 +42,8 @@ public final class EmoteConfig {
     public boolean showOtherEmotes = true;
     // switches to third person while emoting from first person
     public boolean thirdPersonEmotes = true;
-    // emotes may bend elbows and knees (see Bend), off draws every limb straight
-    public boolean bendLimbs = true;
+    // how emotes bend elbows and knees (see Bend)
+    public LimbBends limbBends = LimbBends.EMOTE;
     // the wheel shows while its key is held and plays the hovered emote on release
     public boolean holdToOpenWheel = false;
     // other players may ask to do partner emotes with us
@@ -111,7 +112,7 @@ public final class EmoteConfig {
             this.hearOtherSounds = getBoolean(json, "hearOtherSounds", this.hearOtherSounds);
             this.showOtherEmotes = getBoolean(json, "showOtherEmotes", this.showOtherEmotes);
             this.thirdPersonEmotes = getBoolean(json, "thirdPersonEmotes", this.thirdPersonEmotes);
-            this.bendLimbs = getBoolean(json, "bendLimbs", this.bendLimbs);
+            this.limbBends = json.has("limbBends") ? LimbBends.byName(json.get("limbBends").getAsString()) : this.limbBends;
             this.holdToOpenWheel = getBoolean(json, "holdToOpenWheel", this.holdToOpenWheel);
             this.acceptRequests = getBoolean(json, "acceptRequests", this.acceptRequests);
             this.recentExpanded = getBoolean(json, "recentExpanded", this.recentExpanded);
@@ -151,7 +152,7 @@ public final class EmoteConfig {
         json.addProperty("hearOtherSounds", this.hearOtherSounds);
         json.addProperty("showOtherEmotes", this.showOtherEmotes);
         json.addProperty("thirdPersonEmotes", this.thirdPersonEmotes);
-        json.addProperty("bendLimbs", this.bendLimbs);
+        json.addProperty("limbBends", this.limbBends.id());
         json.addProperty("holdToOpenWheel", this.holdToOpenWheel);
         json.addProperty("acceptRequests", this.acceptRequests);
         json.addProperty("recentExpanded", this.recentExpanded);
@@ -212,5 +213,32 @@ public final class EmoteConfig {
         JsonArray array = new JsonArray();
         values.forEach(array::add);
         return array;
+    }
+
+    // how bent elbows and knees are drawn: the way the emote asks for, always one smoothly bent limb, always two rigid
+    // halves, or never bent
+    public enum LimbBends {
+        EMOTE,
+        SMOOTH,
+        SPLIT,
+        OFF;
+
+        public String id() {
+            return this.name().toLowerCase(Locale.ROOT);
+        }
+
+        public LimbBends next() {
+            return values()[(this.ordinal() + 1) % values().length];
+        }
+
+        static LimbBends byName(String name) {
+            for (LimbBends value : values()) {
+                if (value.id().equalsIgnoreCase(name)) {
+                    return value;
+                }
+            }
+
+            return EMOTE;
+        }
     }
 }

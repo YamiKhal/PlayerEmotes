@@ -112,7 +112,7 @@ public final class EmotePlayback {
             return null;
         }
 
-        return new Frame(animation, elapsed / 20.0, weight, this.options.look(), this.link);
+        return new Frame(animation, elapsed / 20.0, weight, this.options.look(), this.options.splitLimbs(), this.link);
     }
 
     private static float smooth(float t) {
@@ -128,10 +128,11 @@ public final class EmotePlayback {
     }
 
     // everything needed to pose a player for one frame, link is where a partner emote draws the player
-    public record Frame(EmoteAnimation animation, double seconds, float weight, boolean look, @Nullable PartnerLink link) {
+    public record Frame(EmoteAnimation animation, double seconds, float weight, boolean look, boolean splitLimbs,
+                        @Nullable PartnerLink link) {
 
-        public Frame(EmoteAnimation animation, double seconds, float weight, boolean look) {
-            this(animation, seconds, weight, look, null);
+        public Frame(EmoteAnimation animation, double seconds, float weight, boolean look, boolean splitLimbs) {
+            this(animation, seconds, weight, look, splitLimbs, null);
         }
     }
 }

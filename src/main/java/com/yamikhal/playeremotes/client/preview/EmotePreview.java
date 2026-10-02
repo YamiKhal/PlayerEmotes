@@ -36,7 +36,7 @@ public final class EmotePreview {
 
         if (!active) {
             ACTIVE.remove(key);
-            return new EmotePlayback.Frame(animation, previewTime(emote, animation), 1, emote.look());
+            return new EmotePlayback.Frame(animation, previewTime(emote, animation), 1, emote.look(), emote.splitLimbs());
         }
 
         long now = System.nanoTime() / 1_000_000;
@@ -46,7 +46,7 @@ public final class EmotePreview {
             seconds = 0;
         }
 
-        return new EmotePlayback.Frame(animation, seconds, 1, emote.look());
+        return new EmotePlayback.Frame(animation, seconds, 1, emote.look(), emote.splitLimbs());
     }
 
     @Nullable

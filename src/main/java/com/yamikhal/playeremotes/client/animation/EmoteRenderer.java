@@ -7,6 +7,7 @@ import com.yamikhal.playeremotes.anim.Part;
 import com.yamikhal.playeremotes.anim.Pose;
 import com.yamikhal.playeremotes.anim.PoseSolver;
 import com.yamikhal.playeremotes.client.PlayerEmotesClient;
+import com.yamikhal.playeremotes.client.config.EmoteConfig;
 import net.minecraft.client.model.HumanoidModel;
 //? if >=1.21.11 {
 /*import net.minecraft.client.model.player.PlayerModel;
@@ -77,15 +78,16 @@ public final class EmoteRenderer {
             part.zRot = values[5];
         }
 
-        // MODEL_PARTS has the limbs last, in LIMBS order
-        boolean bendLimbs = PlayerEmotesClient.config().bendLimbs;
+        // MODEL_PARTS has the limbs last, in LIMBS order. the player's setting wins over the emote's bend style
+        EmoteConfig.LimbBends style = PlayerEmotesClient.config().limbBends;
+        boolean split = style == EmoteConfig.LimbBends.SPLIT || (style == EmoteConfig.LimbBends.EMOTE && frame.splitLimbs());
         for (int i = 0; i < Part.LIMBS.length; i++) {
             Part limb = Part.LIMBS[i];
             Bend bend = bend(parts[parts.length - Part.LIMBS.length + i]);
             int lower = limb.lower().ordinal();
             float[] values = SOLVER.parts[lower];
-            if (bendLimbs && SOLVER.bent[lower]) {
-                bend.set(limb.jointY(), values[3], values[4], values[5]);
+            if (style != EmoteConfig.LimbBends.OFF && SOLVER.bent[lower]) {
+                bend.set(limb.jointY(), values[3], values[4], values[5], split);
             } else {
                 bend.active = false;
             }
@@ -257,7 +259,8 @@ public final class EmoteRenderer {
         rotate(stack, new Quaternionf().rotationZYX(values[5], values[4], values[3]));
         float[] end = LOCATOR_ENDS[part.ordinal()];
         // hands and feet follow a bent limb's lower half, which turns around the joint in the middle of the limb
-        if (part.isLimb() && SOLVER.bent[part.lower().ordinal()] && PlayerEmotesClient.config().bendLimbs) {
+        if (part.isLimb() && SOLVER.bent[part.lower().ordinal()]
+                && PlayerEmotesClient.config().limbBends != EmoteConfig.LimbBends.OFF) {
             float[] bend = SOLVER.parts[part.lower().ordinal()];
             float jointY = part.jointY() / 16F;
             stack.translate(end[0] / 16F, jointY, end[2] / 16F);

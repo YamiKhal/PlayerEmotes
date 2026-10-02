@@ -54,6 +54,7 @@ import java.util.concurrent.ThreadLocalRandom;
 //       "animations": ["clap", "clap2"],  // default: the animation with the emote's name
 //       "pick": "cycle",                  // or "random"
 //       "look": true,                     // head follows the camera
+//       "bend_style": "smooth",           // bent elbows and knees: "smooth" or "split" (two rigid halves)
 //       "preview": 0.5,                   // seconds into the animation shown as the menu pose (default: middle)
 //       "sound": "mymod:emote.clap",      // or {"id": ..., "volume": 1, "pitch": 1, "range": 8}
 //       "item": "minecraft:cake",         // held while playing, or {"id": ..., "hand": "right|left|both"}
@@ -315,6 +316,7 @@ public final class EmoteRegistry {
                 json.has("selector") ? GsonHelper.getAsString(json, "selector") : null,
                 pick,
                 GsonHelper.getAsBoolean(json, "look", true),
+                GsonHelper.getAsString(json, "bend_style", "smooth").equalsIgnoreCase("split"),
                 seconds(json, "blend_in", 0.15F),
                 seconds(json, "blend_out", 0.2F),
                 readSound(json.get("sound"), namespace),

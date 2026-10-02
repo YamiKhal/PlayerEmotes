@@ -10,6 +10,7 @@ import org.jetbrains.annotations.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.Predicate;
 
 // client settings, laid out like PackScreen: a list of check box rows, each explained by a tooltip
@@ -32,8 +33,9 @@ public class SettingsScreen extends EmoteScreen {
                     config -> config.showIcons = !config.showIcons),
             new Setting("playeremotes.settings.third_person", config -> config.thirdPersonEmotes,
                     config -> config.thirdPersonEmotes = !config.thirdPersonEmotes),
-            new Setting("playeremotes.settings.bend_limbs", config -> config.bendLimbs,
-                    config -> config.bendLimbs = !config.bendLimbs),
+            new Setting("playeremotes.settings.limb_bends", config -> config.limbBends != EmoteConfig.LimbBends.OFF,
+                    config -> config.limbBends = config.limbBends.next(),
+                    config -> Component.translatable("playeremotes.settings.limb_bends." + config.limbBends.id())),
             new Setting("playeremotes.settings.hold_wheel", config -> config.holdToOpenWheel,
                     config -> config.holdToOpenWheel = !config.holdToOpenWheel),
             new Setting("playeremotes.settings.partner_requests", config -> config.acceptRequests, config -> {
@@ -77,9 +79,16 @@ public class SettingsScreen extends EmoteScreen {
                 canvas.fill(this.x + 1, top + 1, this.x + this.listWidth - 1, top + ROW_HEIGHT - 1, 0x80424242);
             }
 
-            String name = this.font.substrByWidth(Component.translatable(setting.key), this.listWidth - BOX_SIZE - 18).getString();
+            // a choice shows its value where a check box would be
+            String choice = setting.choice != null ? setting.choice.apply(config).getString() : null;
+            int valueWidth = choice != null ? this.font.width(choice) : BOX_SIZE;
+            String name = this.font.substrByWidth(Component.translatable(setting.key), this.listWidth - valueWidth - 18).getString();
             canvas.text(this.font, name, this.x + 6, top + 7, on ? 0xFFFFFFFF : 0xFF808080, true);
-            canvas.checkbox(this.x + this.listWidth - BOX_SIZE - 6, top + (ROW_HEIGHT - BOX_SIZE) / 2, BOX_SIZE, on);
+            if (choice != null) {
+                canvas.text(this.font, choice, this.x + this.listWidth - valueWidth - 6, top + 7, on ? 0xFFFFFF55 : 0xFF808080, true);
+            } else {
+                canvas.checkbox(this.x + this.listWidth - BOX_SIZE - 6, top + (ROW_HEIGHT - BOX_SIZE) / 2, BOX_SIZE, on);
+            }
         }
     }
 
@@ -128,5 +137,12 @@ public class SettingsScreen extends EmoteScreen {
         return index >= 0 && index < SETTINGS.size() ? SETTINGS.get(index) : null;
     }
 
-    private record Setting(String key, Predicate<EmoteConfig> value, Consumer<EmoteConfig> toggle) {}
+    // choice is the value of a setting with more than two states, null for a check box
+    private record Setting(String key, Predicate<EmoteConfig> value, Consumer<EmoteConfig> toggle,
+                           @Nullable Function<EmoteConfig, Component> choice) {
+
+        Setting(String key, Predicate<EmoteConfig> value, Consumer<EmoteConfig> toggle) {
+            this(key, value, toggle, null);
+        }
+    }
 }
