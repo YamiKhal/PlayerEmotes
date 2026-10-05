@@ -2,7 +2,7 @@ package com.yamikhal.playeremotes.anim;
 
 import java.util.Locale;
 
-// mirrors the bone layout of blockbench/player_emote_template.geo.json so the Blockbench preview matches the game:
+// mirrors the bone layout of workspace/player_emote_template.geo.json so the Blockbench preview matches the game:
 // body (root, moves the whole player)
 // ├── torso (pivot at the waist)
 // │   ├── head

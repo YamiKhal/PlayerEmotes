@@ -38,6 +38,12 @@ replay_*.log
 
 # published jars of the lost original project (kept locally for reference only)
 original-jars/
+tools/
 
 #temp
 README.md
+
+# animation workspace: notes, per prompt backups, rendered previews
+SMOOTH.md
+workspace/
+.vscode

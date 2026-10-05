@@ -7,56 +7,33 @@
       "look": false
     },
     "bow": {
-      "animations": [
-        "bow",
-        "bow2",
-        "bow3"
-      ],
+      "look": false
+    },
+    "bow_polite": {
+      "look": false
+    },
+    "bow_deep": {
+      "look": false
+    },
+    "bow_down": {
       "look": false
     },
     "cheer": {
       "sound": "minecraft:entity.villager.celebrate"
     },
-    "clap": {
-      "animations": [
-        "clap",
-        "clap2",
-        "clap3"
-      ]
-    },
     "cry": {
-      "animations": [
-        "cry",
-        "cry2"
-      ],
       "look": false
     },
     "facepalm": {
-      "animations": [
-        "facepalm",
-        "facepalm2",
-        "facepalm3"
-      ],
       "look": false
     },
     "flex_muscle": {
-      "look": false
-    },
-    "head_nod": {
-      "look": false
-    },
-    "head_shake": {
       "look": false
     },
     "hide_barrel": {
       "look": false
     },
     "kneel": {
-      "animations": [
-        "kneel",
-        "kneel2",
-        "kneel3"
-      ],
       "look": false
     },
     "laugh": {
@@ -66,47 +43,31 @@
       }
     },
     "lay": {
-      "animations": [
-        "lay",
-        "lay2",
-        "lay3"
-      ],
       "look": false
     },
-    "lean": {
-      "selector": "lean",
-      "variants": {
-        "left": [
-          "lean_to_left"
-        ],
-        "right": [
-          "lean_to_right"
-        ],
-        "back": [
-          "lean_to_back"
-        ]
-      }
+    "lay_relaxed": {
+      "look": false
     },
-    "point": {
-      "animations": [
-        "point",
-        "point2"
-      ]
+    "lay_side": {
+      "look": false
     },
-    "salute": {
-      "animations": [
-        "salute",
-        "salute2"
-      ]
+    "sit_lean_back": {
+      "look": false
+    },
+    "sit_rest": {
+      "look": false
+    },
+    "sit_side": {
+      "look": false
     },
     "yawn": {
       "look": false
     },
-    "partner_hug": {
+    "hug": {
       "look": false,
       "partner": {
-        "intro": "partner_hug_intro",
-        "action": "partner_hug",
+        "intro": "hug_intro",
+        "action": "hug",
         "distance": 0.6
       }
     },
@@ -117,6 +78,68 @@
         "action": "high_five",
         "distance": 0.9
       }
+    },
+    "high_five_sport": {
+      "look": false,
+      "partner": {
+        "intro": "high_five_sport_intro",
+        "action": "high_five_sport",
+        "distance": 0.9
+      }
+    },
+    "robot_dance": {
+      "look": false
+    },
+    "side_step_shuffle": {
+      "look": false
+    },
+    "arm_wave_dance": {
+      "look": false
+    },
+    "kamehameha": {
+      "look": false
+    },
+    "naruto_run": {
+      "look": false
+    },
+    "zelda_item_get": {
+      "look": false
+    },
+    "fusion_dance": {
+      "look": false,
+      "partner": {
+        "intro": "fusion_dance_intro",
+        "action": "fusion_dance",
+        "partner_action": "fusion_dance_partner",
+        "distance": 3.47
+      }
+    },
+    "matrix_dodge": {
+      "look": false
+    },
+    "titanic": {
+      "look": false
+    },
+    "floss": {
+      "look": false
+    },
+    "crane_kick": {
+      "look": false
+    },
+    "thriller": {
+      "look": false
+    },
+    "jotaro_point": {
+      "look": false
+    },
+    "lightning_bolt": {
+      "look": false
+    },
+    "ginyu_pose": {
+      "look": false
+    },
+    "t_pose": {
+      "look": false
     }
   }
 }

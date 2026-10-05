@@ -15,6 +15,51 @@
       "args": ["buildAndCollect", "--continue"],
       "problemMatcher": [],
       "group": "build"
+    },
+    {
+      "label": "Tools: download YouTube videos",
+      "type": "process",
+      "command": "py",
+      "args": ["-3", "${workspaceFolder}/tools/youtube/download.py"],
+      "options": {"cwd": "${workspaceFolder}/tools/youtube"},
+      "presentation": {"focus": true, "panel": "dedicated", "clear": true},
+      "problemMatcher": []
+    },
+    {
+      "label": "Tools: convert video to emote",
+      "type": "process",
+      "command": "py",
+      "args": ["-3", "${workspaceFolder}/tools/video/video2emote.py"],
+      "options": {"cwd": "${workspaceFolder}/tools/video"},
+      "presentation": {"focus": true, "panel": "dedicated", "clear": true},
+      "problemMatcher": []
+    },
+    {
+      "label": "Tools: convert AIST++ dance to emote",
+      "type": "process",
+      "command": "py",
+      "args": ["-3", "${workspaceFolder}/tools/video/aist.py"],
+      "options": {"cwd": "${workspaceFolder}/tools/video"},
+      "presentation": {"focus": true, "panel": "dedicated", "clear": true},
+      "problemMatcher": []
+    },
+    {
+      "label": "Tools: preview animation",
+      "type": "process",
+      "command": "py",
+      "args": ["-3", "${workspaceFolder}/tools/video/preview.py"],
+      "options": {"cwd": "${workspaceFolder}/tools/video"},
+      "presentation": {"focus": true, "panel": "dedicated", "clear": true},
+      "problemMatcher": []
+    },
+    {
+      "label": "Tools: polish animation",
+      "type": "process",
+      "command": "py",
+      "args": ["-3", "${workspaceFolder}/tools/video/polish.py"],
+      "options": {"cwd": "${workspaceFolder}/tools/video"},
+      "presentation": {"focus": true, "panel": "dedicated", "clear": true},
+      "problemMatcher": []
     }
   ],
   "inputs": [

@@ -112,9 +112,9 @@ public final class EmoteConfig {
             this.hearOtherSounds = getBoolean(json, "hearOtherSounds", this.hearOtherSounds);
             this.showOtherEmotes = getBoolean(json, "showOtherEmotes", this.showOtherEmotes);
             this.thirdPersonEmotes = getBoolean(json, "thirdPersonEmotes", this.thirdPersonEmotes);
-            this.limbBends = json.has("limbBends") ? LimbBends.byName(json.get("limbBends").getAsString()) : this.limbBends;
             this.holdToOpenWheel = getBoolean(json, "holdToOpenWheel", this.holdToOpenWheel);
             this.acceptRequests = getBoolean(json, "acceptRequests", this.acceptRequests);
+            this.limbBends = json.has("limbBends") ? LimbBends.byName(json.get("limbBends").getAsString()) : this.limbBends;
             this.recentExpanded = getBoolean(json, "recentExpanded", this.recentExpanded);
             if (json.has("recent")) {
                 this.recent.clear();

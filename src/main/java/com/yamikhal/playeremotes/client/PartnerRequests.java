@@ -58,10 +58,10 @@ final class PartnerRequests {
     // "X wants to emote with you: Hug [Accept]", the button runs /emoteaccept
     private static void announce(PlayerEmotesClient.PendingRequest request) {
         MutableComponent accept = Component.translatable("playeremotes.partner.accept_button")
-                .withStyle(style -> style.withColor(ChatFormatting.GREEN).withClickEvent(acceptClick()));
+                .withStyle(style -> style.withColor(ChatFormatting.GOLD).withClickEvent(acceptClick()));
         MutableComponent message = Component.translatable("playeremotes.partner.request",
-                        Component.literal(request.starterName()).withStyle(ChatFormatting.YELLOW),
-                        Component.literal(request.emoteName()).withStyle(ChatFormatting.AQUA))
+                        Component.literal(request.starterName()).withStyle(ChatFormatting.GRAY),
+                        Component.literal(request.emoteName()).withStyle(ChatFormatting.GRAY)).withStyle(ChatFormatting.GRAY)
                 .append(" ").append(accept);
         if (!PlayerEmotesClient.ACCEPT.isUnbound()) {
             message.append(Component.translatable("playeremotes.partner.accept_key", PlayerEmotesClient.ACCEPT.getTranslatedKeyMessage())
