@@ -81,6 +81,8 @@ final class LocalEmotes {
         LocalPlayer player = minecraft.player;
         if (player == null || EmotePlayers.inReplay()) {
             cameraSwitched = false;
+            // would keep the left world in memory
+            cameraLevel = null;
             return;
         }
 
@@ -279,6 +281,7 @@ final class LocalEmotes {
         }
 
         cameraSwitched = false;
+        cameraLevel = null;
         if (minecraft.options.getCameraType() == CameraType.THIRD_PERSON_BACK) {
             minecraft.options.setCameraType(CameraType.FIRST_PERSON);
         }
