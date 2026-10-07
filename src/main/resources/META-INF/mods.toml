@@ -10,6 +10,8 @@ version = "${version}"
 authors = "${authors}"
 description = "${description}"
 logoFile = "assets/playeremotes/icon.png"
+# works with only one side having it, server list must not mark servers without it incompatible
+displayTest = "IGNORE_ALL_VERSION"
 
 [[dependencies.${id}]]
 modId = "minecraft"

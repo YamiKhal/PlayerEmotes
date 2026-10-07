@@ -6,9 +6,9 @@ import net.minecraft.world.entity.player.Player;
 
 import java.util.function.Function;
 
-// Entity Model Features applies resource pack player animations after the vanilla pose, which would overwrite
-// emotes, so a pause condition is registered while the player has an emote. called through reflection so there
-// is no build dependency, and only when EMF is installed
+// Entity Model Features applies resource pack player animations after the vanilla pose and would overwrite
+// emotes, so a pause condition while the player emotes. through reflection, no build dependency, only when EMF
+// is installed
 public final class EmfCompat {
 
     public static final String MOD_ID = "entity_model_features";

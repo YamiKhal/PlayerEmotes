@@ -15,15 +15,15 @@ import java.util.List;
 import java.util.UUID;
 import java.util.function.Consumer;
 
-// wire format of all emote messages. loaders only move opaque byte arrays over one channel per direction (C2S, S2C),
-// everything protocol related lives here. every message starts with the protocol version and a message type, so the
-// format can evolve without breaking the loader glue
+// wire format of all emote messages. loaders only move byte arrays over one channel per direction (C2S, S2C),
+// all protocol stuff lives here. every message starts with protocol version and message type, so the format can
+// change without touching the loader glue
 public final class EmoteNetwork {
 
     public static final ResourceLocation C2S = PlayerEmotes.id("c2s");
     public static final ResourceLocation S2C = PlayerEmotes.id("s2c");
 
-    public static final int PROTOCOL = 3;
+    public static final int PROTOCOL = 5;
     private static final int MAX_ID_LENGTH = 256;
 
     // client -> server
@@ -50,19 +50,19 @@ public final class EmoteNetwork {
     // longest emote name shown in a partner request
     private static final int MAX_NAME_LENGTH = 64;
 
-    // limits for server emote packs, enforced on both sides
+    // server emote pack limits, checked on both sides
     public static final int MAX_PACK_FILES = 1024;
     public static final int MAX_PACK_FILE_SIZE = 2 * 1024 * 1024;
     public static final int MAX_PACK_TOTAL_SIZE = 16 * 1024 * 1024;
     // compressed bytes per data message, well below every loader's payload limit
     public static final int PACK_CHUNK_SIZE = 32 * 1024;
-    private static final int MAX_PATH_LENGTH = 256;
+    public static final int MAX_PATH_LENGTH = 256;
     private static final int SHA1_LENGTH = 20;
 
     private EmoteNetwork() {}
 
-    // sequence numbers the local player's emotes so a late denial cannot stop a newer emote, emote is the one that was
-    // picked and is checked against the server's rules
+    // sequence numbers the local player's emotes so a late denial cannot stop a newer one, emote is the picked one
+    // and gets checked against the server's rules
     public static byte[] playRequest(int sequence, ResourceLocation emote, ResourceLocation animation, Options options) {
         return encode(C2S_PLAY, buf -> {
             buf.writeVarInt(sequence);
@@ -76,12 +76,12 @@ public final class EmoteNetwork {
         return encode(C2S_STOP, buf -> {});
     }
 
-    // sent once the channel is up and whenever the player's preferences change, the server answers with its rules
+    // sent once the channel is up and whenever the player's preferences change, server answers with its rules
     public static byte[] hello(boolean acceptRequests) {
         return encode(C2S_HELLO, buf -> buf.writeBoolean(acceptRequests));
     }
 
-    // starts a two-player emote: plays the intro and waits for a partner
+    // starts a two player emote: plays the intro and waits for a partner
     public static byte[] partnerStart(int sequence, ResourceLocation emote, PartnerSpec spec, Options options, String name) {
         return encode(C2S_PARTNER_START, buf -> {
             buf.writeVarInt(sequence);
@@ -97,7 +97,7 @@ public final class EmoteNetwork {
         return encode(C2S_ACCEPT, buf -> {});
     }
 
-    // joins the emote another player is playing, in step with them
+    // joins another player's emote, in step with them
     public static byte[] syncRequest(int sequence, UUID target) {
         return encode(C2S_SYNC, buf -> {
             buf.writeVarInt(sequence);
@@ -105,7 +105,7 @@ public final class EmoteNetwork {
         });
     }
 
-    // asks for the files of a server pack manifest that are not in the client's cache
+    // asks for the files of a server pack manifest missing in the client's cache
     public static byte[] packsRequest(int generation, int[] indices) {
         return encode(C2S_PACKS_REQUEST, buf -> {
             buf.writeVarInt(generation);
@@ -116,7 +116,7 @@ public final class EmoteNetwork {
         });
     }
 
-    // must be called on the server thread
+    // server thread only
     public static void handleServer(ServerPlayer player, byte[] data) {
         FriendlyByteBuf buf = new FriendlyByteBuf(Unpooled.wrappedBuffer(data));
         try {
@@ -169,17 +169,23 @@ public final class EmoteNetwork {
         }
     }
 
-    public static byte[] remotePlay(UUID player, ResourceLocation animation, Options options, int elapsedTicks) {
+    // gameTime is the world's game time when sent. live clients time emotes by when messages arrive, replays (Replay
+    // Mod, Flashback) deliver recorded messages in bursts when jumping around, so they go by gameTime instead
+    public static byte[] remotePlay(UUID player, ResourceLocation animation, Options options, int elapsedTicks, long gameTime) {
         return encode(S2C_PLAY, buf -> {
             buf.writeUUID(player);
             buf.writeUtf(animation.toString(), MAX_ID_LENGTH);
             options.write(buf);
             buf.writeVarInt(Math.max(0, elapsedTicks));
+            buf.writeLong(gameTime);
         });
     }
 
-    public static byte[] remoteStop(UUID player) {
-        return encode(S2C_STOP, buf -> buf.writeUUID(player));
+    public static byte[] remoteStop(UUID player, long gameTime) {
+        return encode(S2C_STOP, buf -> {
+            buf.writeUUID(player);
+            buf.writeLong(gameTime);
+        });
     }
 
     public static byte[] denied(int sequence, Denial reason) {
@@ -210,14 +216,16 @@ public final class EmoteNetwork {
             buf.writeUtf(play.partnerAnimation().toString(), MAX_ID_LENGTH);
             play.options().write(buf);
             buf.writeVarInt(Math.max(0, play.elapsedTicks()));
+            buf.writeLong(play.gameTime());
         });
     }
 
-    public static byte[] partnerEnd(int id, UUID starter, UUID partner) {
+    public static byte[] partnerEnd(int id, UUID starter, UUID partner, long gameTime) {
         return encode(S2C_PARTNER_END, buf -> {
             buf.writeVarInt(id);
             buf.writeUUID(starter);
             buf.writeUUID(partner);
+            buf.writeLong(gameTime);
         });
     }
 
@@ -265,7 +273,7 @@ public final class EmoteNetwork {
         });
     }
 
-    // null if the message is malformed or from another protocol version
+    // null if malformed or from another protocol version
     @Nullable
     public static ClientMessage decodeClient(byte[] data) {
         FriendlyByteBuf buf = new FriendlyByteBuf(Unpooled.wrappedBuffer(data));
@@ -280,9 +288,10 @@ public final class EmoteNetwork {
                     ResourceLocation animation = ResourceLocation.tryParse(buf.readUtf(MAX_ID_LENGTH));
                     Options options = Options.read(buf);
                     int elapsed = buf.readVarInt();
-                    yield animation == null ? null : new RemotePlay(player, animation, options, elapsed);
+                    long gameTime = buf.readLong();
+                    yield animation == null ? null : new RemotePlay(player, animation, options, elapsed, gameTime);
                 }
-                case S2C_STOP -> new RemoteStop(buf.readUUID());
+                case S2C_STOP -> new RemoteStop(buf.readUUID(), buf.readLong());
                 case S2C_DENIED -> new Denied(buf.readVarInt(), Denial.byId(buf.readUnsignedByte()));
                 case S2C_CONFIG -> {
                     int cooldown = buf.readVarInt();
@@ -302,14 +311,15 @@ public final class EmoteNetwork {
                     ResourceLocation partnerAnimation = ResourceLocation.tryParse(buf.readUtf(MAX_ID_LENGTH));
                     Options options = Options.read(buf);
                     int elapsed = buf.readVarInt();
+                    long gameTime = buf.readLong();
                     if (starterAnimation == null || partnerAnimation == null || !Double.isFinite(x + y + z + yaw + distance)) {
                         yield null;
                     }
 
                     yield new PartnerPlay(id, starter, partner, x, y, z, yaw, Math.max(0, Math.min(PartnerSpec.MAX_DISTANCE, distance)),
-                            starterAnimation, partnerAnimation, options, elapsed);
+                            starterAnimation, partnerAnimation, options, elapsed, gameTime);
                 }
-                case S2C_PARTNER_END -> new PartnerEnd(buf.readVarInt(), buf.readUUID(), buf.readUUID());
+                case S2C_PARTNER_END -> new PartnerEnd(buf.readVarInt(), buf.readUUID(), buf.readUUID(), buf.readLong());
                 case S2C_REQUEST -> {
                     UUID starter = buf.readUUID();
                     String starterName = truncate(buf.readUtf(MAX_NAME_LENGTH * 4));
@@ -364,7 +374,13 @@ public final class EmoteNetwork {
     }
 
     private static String truncate(String text) {
-        return text.length() > MAX_NAME_LENGTH ? text.substring(0, MAX_NAME_LENGTH) : text;
+        if (text.length() <= MAX_NAME_LENGTH) {
+            return text;
+        }
+
+        // never cut between the two halves of a surrogate pair (emoji and such)
+        int end = Character.isHighSurrogate(text.charAt(MAX_NAME_LENGTH - 1)) ? MAX_NAME_LENGTH - 1 : MAX_NAME_LENGTH;
+        return text.substring(0, end);
     }
 
     private static byte[] encode(int type, Consumer<FriendlyByteBuf> writer) {
@@ -377,25 +393,31 @@ public final class EmoteNetwork {
         return bytes;
     }
 
-    // playback settings sent along with an animation, sound is null for silent emotes, prop is the item held during the
-    // emote, null for none, splitLimbs draws bent limbs as two rigid halves. a flag older versions do not know is
-    // ignored by them, so new flags need no protocol change
+    // playback settings sent with an animation, sound null for silent emotes, prop the item held during the emote
+    // or null, props the items the animation moves, splitLimbs draws bent limbs as two rigid halves. a new flag
+    // without data needs no protocol change, one with data does (messages go on after the options)
     public record Options(boolean look, boolean splitLimbs, int blendInTicks, int blendOutTicks, @Nullable EmoteSound sound,
-                          @Nullable EmoteProp prop) {
+                          @Nullable EmoteProp prop, List<AnimatedProp> props) {
 
-        public static final Options DEFAULT = new Options(true, false, 3, 4, null, null);
+        public static final Options DEFAULT = new Options(true, false, 3, 4, null, null, List.of());
         private static final int LOOK = 1;
         private static final int SOUND = 2;
         private static final int PROP = 4;
         private static final int SPLIT_LIMBS = 8;
+        private static final int PROPS = 16;
+
+        public Options {
+            props = List.copyOf(props.size() > AnimatedProp.MAX_PROPS ? props.subList(0, AnimatedProp.MAX_PROPS) : props);
+        }
 
         public Options withoutSound() {
-            return this.sound == null ? this : new Options(this.look, this.splitLimbs, this.blendInTicks, this.blendOutTicks, null, this.prop);
+            return this.sound == null ? this : new Options(this.look, this.splitLimbs, this.blendInTicks, this.blendOutTicks, null,
+                    this.prop, this.props);
         }
 
         void write(FriendlyByteBuf buf) {
             buf.writeByte((this.look ? LOOK : 0) | (this.sound != null ? SOUND : 0) | (this.prop != null ? PROP : 0)
-                    | (this.splitLimbs ? SPLIT_LIMBS : 0));
+                    | (this.splitLimbs ? SPLIT_LIMBS : 0) | (!this.props.isEmpty() ? PROPS : 0));
             buf.writeByte(clampByte(this.blendInTicks));
             buf.writeByte(clampByte(this.blendOutTicks));
             if (this.sound != null) {
@@ -405,6 +427,10 @@ public final class EmoteNetwork {
             if (this.prop != null) {
                 this.prop.write(buf);
             }
+
+            if (!this.props.isEmpty()) {
+                AnimatedProp.writeList(buf, this.props);
+            }
         }
 
         static Options read(FriendlyByteBuf buf) {
@@ -413,7 +439,8 @@ public final class EmoteNetwork {
             int blendOut = buf.readUnsignedByte();
             EmoteSound sound = (flags & SOUND) != 0 ? EmoteSound.read(buf) : null;
             EmoteProp prop = (flags & PROP) != 0 ? EmoteProp.read(buf) : null;
-            return new Options((flags & LOOK) != 0, (flags & SPLIT_LIMBS) != 0, blendIn, blendOut, sound, prop);
+            List<AnimatedProp> props = (flags & PROPS) != 0 ? AnimatedProp.readList(buf) : List.of();
+            return new Options((flags & LOOK) != 0, (flags & SPLIT_LIMBS) != 0, blendIn, blendOut, sound, prop, props);
         }
 
         private static int clampByte(int value) {
@@ -423,13 +450,13 @@ public final class EmoteNetwork {
 
     // why the server refused an emote of the local player
     public enum Denial {
-        // emotes are turned off on this server
+        // emotes are off on this server
         DISABLED,
-        // the player lacks the permission, or the emote is disabled or restricted
+        // player lacks the permission, or the emote is disabled or restricted
         NOT_ALLOWED,
         // too soon after the previous emote
         COOLDOWN,
-        // the emote to sync with is gone or out of reach
+        // emote to sync with is gone or out of reach
         SYNC_FAILED;
 
         private static final Denial[] VALUES = values();
@@ -439,7 +466,7 @@ public final class EmoteNetwork {
         }
     }
 
-    // what the server allows, sent in reply to hello
+    // what the server allows, reply to hello
     public record ServerRules(int cooldownTicks, boolean sync, boolean partner) {
 
         // assumed until the server answers (or when it does not have the mod)
@@ -448,7 +475,7 @@ public final class EmoteNetwork {
         private static final int PARTNER = 2;
     }
 
-    // a two-player emote: what the starter plays while waiting, then what each of the two plays
+    // two player emote: what the starter plays while waiting, then what each of the two plays
     public record PartnerSpec(ResourceLocation intro, ResourceLocation action, ResourceLocation partnerAction, float distance) {
 
         // farthest the two may be apart in the animations, in blocks
@@ -481,7 +508,7 @@ public final class EmoteNetwork {
 
     // what happened to the local player's partner emote
     public enum StatusCode {
-        // a request went to name
+        // request went to name
         REQUEST_SENT,
         // nobody in front, anyone can join
         WAITING_OPEN,
@@ -505,23 +532,30 @@ public final class EmoteNetwork {
     public sealed interface ClientMessage permits RemotePlay, RemoteStop, Denied, Rules, PackManifest, PackChunk,
             PartnerPlay, PartnerEnd, Request, RequestCancel, Status {}
 
-    // a player started an emote elapsedTicks ago
-    public record RemotePlay(UUID player, ResourceLocation animation, Options options, int elapsedTicks) implements ClientMessage {}
+    // player started an emote elapsedTicks ago, gameTime is when sent (see remotePlay)
+    public record RemotePlay(UUID player, ResourceLocation animation, Options options, int elapsedTicks, long gameTime) implements ClientMessage {}
 
-    public record RemoteStop(UUID player) implements ClientMessage {}
+    public record RemoteStop(UUID player, long gameTime) implements ClientMessage {}
 
-    // the local player's emote number sequence was refused
+    // local player's emote number sequence got refused
     public record Denied(int sequence, Denial reason) implements ClientMessage {}
 
     public record Rules(ServerRules rules) implements ClientMessage {}
 
-    // two players start a partner emote together. they are drawn as if starter stood at the anchor facing yaw and
-    // partner stood distance blocks in front of them, facing back
+    // two players start a partner emote together, drawn as if starter stood at the anchor facing yaw and partner
+    // distance blocks in front of them, facing back
     public record PartnerPlay(int id, UUID starter, UUID partner, double x, double y, double z, float yaw, float distance,
                               ResourceLocation starterAnimation, ResourceLocation partnerAnimation, Options options,
-                              int elapsedTicks) implements ClientMessage {}
+                              int elapsedTicks, long gameTime) implements ClientMessage {
 
-    public record PartnerEnd(int id, UUID starter, UUID partner) implements ClientMessage {}
+        // same partner emote as sent later on, elapsedTicks into it
+        public PartnerPlay at(int elapsedTicks, long gameTime) {
+            return new PartnerPlay(this.id, this.starter, this.partner, this.x, this.y, this.z, this.yaw, this.distance,
+                    this.starterAnimation, this.partnerAnimation, this.options, elapsedTicks, gameTime);
+        }
+    }
+
+    public record PartnerEnd(int id, UUID starter, UUID partner, long gameTime) implements ClientMessage {}
 
     // starter asks the local player to join their partner emote
     public record Request(UUID starter, String starterName, ResourceLocation emote, String emoteName, int seconds) implements ClientMessage {}
@@ -530,9 +564,9 @@ public final class EmoteNetwork {
 
     public record Status(StatusCode code, String name) implements ClientMessage {}
 
-    // the server's emote pack files, a new generation replaces the previous one
+    // server's emote pack files, a new generation replaces the previous one
     public record PackManifest(int generation, List<PackEntry> entries) implements ClientMessage {}
 
-    // part chunk of chunks of the deflate-compressed file index
+    // chunk part of chunks of the deflate compressed file index
     public record PackChunk(int generation, int index, int chunk, int chunks, byte[] data) implements ClientMessage {}
 }

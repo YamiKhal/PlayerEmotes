@@ -20,27 +20,27 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.function.Predicate;
 
-// two-player emotes. the starter plays an intro (holding its last frame) and waits. a request goes to the nearest player
-// in front of them who faces them back, if there is none, or that player does not answer in time or leaves, anyone who
-// walks up and accepts joins instead. once joined both play their part, moving, getting hurt, attacking, dying or leaving
-// ends it for both. server thread only
+// two player emotes. starter plays an intro (holding its last frame) and waits. a request goes to the nearest
+// player in front facing them back, if there is none, or they do not answer in time or leave, anyone walking up
+// and accepting joins instead. once joined both play their part, moving, getting hurt, attacking, dying or
+// leaving ends it for both. server thread only
 public final class PartnerEmotes {
 
     // farthest two players may stand apart to start, in blocks (horizontally)
     private static final double RANGE = 2.0;
     private static final double MAX_HEIGHT_DIFFERENCE = 0.6;
-    // widest angle between where a player looks and the other player for them to count as facing each other
+    // widest angle between a player's look and the other player to count as facing each other
     private static final double MAX_FACING_ANGLE = 60;
     // how far a waiting or partnered player may drift (e.g. pushed by water) before the emote ends
     private static final double MAX_DRIFT = 0.35;
-    // a starter asking the same player again within this many ticks does not show them a new chat message
+    // asking the same player again within this many ticks shows them no new chat message
     private static final int REQUEST_REPEAT_TICKS = 100;
 
     private static final Map<UUID, Waiting> WAITING = new HashMap<>();
     private static final Map<UUID, Partnership> ACTIVE = new HashMap<>();
     // players who turned partner requests off
     private static final Set<UUID> NO_REQUESTS = new HashSet<>();
-    // who each starter last sent a request to, and when, against request spam
+    // who each starter last sent a request to and when, against request spam
     private static final Map<UUID, LastRequest> LAST_REQUEST = new HashMap<>();
 
     private static int nextId = 1;
@@ -99,7 +99,7 @@ public final class PartnerEmotes {
             }
 
             double distance = starter.distanceToSqr(player);
-            // a request to this player beats an open emote at the same spot
+            // request to this player beats an open emote at the same spot
             if (direct) {
                 distance -= 0.01;
             }
@@ -137,7 +137,7 @@ public final class PartnerEmotes {
         return WAITING.containsKey(player) || ACTIVE.containsKey(player);
     }
 
-    // the player stopped, started something else, left or died: end whatever partner emote they are in
+    // player stopped, started something else, left or died, end whatever partner emote they are in
     static void leave(ServerPlayer player) {
         Waiting waiting = WAITING.remove(player.getUUID());
         if (waiting != null && waiting.recipient != null) {
@@ -176,10 +176,8 @@ public final class PartnerEmotes {
             return false;
         }
 
-        EmoteNetwork.PartnerPlay play = partnership.play;
         int elapsed = EmoteTracker.now(tracker) - partnership.startTick;
-        send(tracker, EmoteNetwork.partnerPlay(new EmoteNetwork.PartnerPlay(play.id(), play.starter(), play.partner(), play.x(),
-                play.y(), play.z(), play.yaw(), play.distance(), play.starterAnimation(), play.partnerAnimation(), play.options(), elapsed)));
+        send(tracker, EmoteNetwork.partnerPlay(partnership.play.at(elapsed, EmoteTracker.gameTime(tracker))));
         return true;
     }
 
@@ -234,14 +232,14 @@ public final class PartnerEmotes {
     private static void join(Waiting waiting, ServerPlayer starter, ServerPlayer partner) {
         WAITING.remove(waiting.starter);
         leave(partner);
-        // facing from the starter to the partner, in Minecraft's yaw (0 = +Z, 90 = -X)
+        // facing from starter to partner, Minecraft yaw (0 = +Z, 90 = -X)
         double dx = partner.getX() - starter.getX();
         double dz = partner.getZ() - starter.getZ();
         float yaw = (float) Math.toDegrees(Math.atan2(-dx, dz));
         int now = EmoteTracker.now(starter);
         EmoteNetwork.PartnerPlay play = new EmoteNetwork.PartnerPlay(nextId++, starter.getUUID(), partner.getUUID(),
                 starter.getX(), starter.getY(), starter.getZ(), yaw, waiting.spec.distance(), waiting.spec.action(),
-                waiting.spec.partnerAction(), waiting.options, 0);
+                waiting.spec.partnerAction(), waiting.options, 0, EmoteTracker.gameTime(starter));
         Partnership partnership = new Partnership(play.id(), starter.getUUID(), partner.getUUID(), starter.position(),
                 partner.position(), play, now);
         ACTIVE.put(starter.getUUID(), partnership);
@@ -259,8 +257,8 @@ public final class PartnerEmotes {
         ACTIVE.remove(partnership.partner, partnership);
         EmoteTracker.forget(partnership.starter, partnership.id);
         EmoteTracker.forget(partnership.partner, partnership.id);
-        byte[] message = EmoteNetwork.partnerEnd(partnership.id, partnership.starter, partnership.partner);
-        // everyone who may see either of the two, which may be in different dimensions by now
+        byte[] message = EmoteNetwork.partnerEnd(partnership.id, partnership.starter, partnership.partner, server.overworld().getGameTime());
+        // everyone who may see either of the two, could be different dimensions by now
         for (ServerPlayer receiver : server.getPlayerList().getPlayers()) {
             send(receiver, message);
         }
@@ -279,7 +277,7 @@ public final class PartnerEmotes {
         status(starter, StatusCode.REQUEST_SENT, target.getScoreboardName());
     }
 
-    // the nearest player in front of player who faces them back and passes the filter
+    // nearest player in front of player facing them back and passing the filter
     @Nullable
     private static ServerPlayer nearest(ServerPlayer player, Predicate<ServerPlayer> filter) {
         ServerPlayer best = null;

@@ -32,10 +32,10 @@ public final class EmoteRenderer {
     private static final Pose POSE = new Pose();
     private static final PoseSolver SOLVER = new PoseSolver();
 
-    // where effects start on each part, in model units from the part's pivot
+    // where effects start on each part, model units from the part's pivot
     private static final float[][] LOCATOR_ENDS = new float[Part.VALUES.length][];
 
-    // set while the first person hand is rendered, which must not be animated
+    // set while the first person hand renders, it must not be animated
     public static boolean renderingHand;
 
     static {
@@ -78,7 +78,7 @@ public final class EmoteRenderer {
             part.zRot = values[5];
         }
 
-        // MODEL_PARTS has the limbs last, in LIMBS order. the player's setting wins over the emote's bend style
+        // MODEL_PARTS has the limbs last, in LIMBS order. player's setting wins over the emote's bend style
         EmoteConfig.LimbBends style = PlayerEmotesClient.config().limbBends;
         boolean split = style == EmoteConfig.LimbBends.SPLIT || (style == EmoteConfig.LimbBends.EMOTE && frame.splitLimbs());
         for (int i = 0; i < Part.LIMBS.length; i++) {
@@ -93,7 +93,7 @@ public final class EmoteRenderer {
             }
         }
 
-        // the outer skin layer bends with its limb
+        // outer skin layer bends with its limb
         //? if >=1.21.2 {
         /*if (model instanceof PlayerModel player) {
         *///?} else
@@ -105,16 +105,16 @@ public final class EmoteRenderer {
         }
     }
 
-    // the bend a model part is drawn with, null while it is straight or not a vanilla part (another mod draws it its own
-    // way, bending its cubes would distort them)
+    // bend a model part is drawn with, null while straight or not a vanilla part (another mod draws it its own way,
+    // bending its cubes would distort them)
     @Nullable
     public static Bend activeBend(ModelPart part) {
         Bend bend = ((BendablePart) (Object) part).playeremotes$bend();
         return bend != null && bend.active && part.getClass() == ModelPart.class ? bend : null;
     }
 
-    // moves the pose stack from a straight arm to its bent lower half, call after the model's translateToHand so held
-    // items follow the hand. the joint is where the hand item sits across the arm (see ItemInHandLayer)
+    // moves the pose stack from a straight arm to its bent lower half, call after translateToHand so held items
+    // follow the hand. joint is where the hand item sits across the arm (see ItemInHandLayer)
     public static void followLowerArm(PoseStack poseStack, ModelPart arm, boolean left) {
         Bend bend = activeBend(arm);
         if (bend == null) {
@@ -128,7 +128,7 @@ public final class EmoteRenderer {
         poseStack.translate(-x, -y, 0);
     }
 
-    // the part's bend, made on first use
+    // part's bend, made on first use
     private static Bend bend(ModelPart part) {
         BendablePart bendable = (BendablePart) (Object) part;
         Bend bend = bendable.playeremotes$bend();
@@ -140,10 +140,9 @@ public final class EmoteRenderer {
         return bend;
     }
 
-    // draws a player of a partner emote at their spot and facing (see PartnerLink) instead of where they stand, eased
-    // in and out with the emote. their height stays, so nobody sinks into a block. x/z is where the renderer draws the
-    // player this frame and bodyRot the body facing it applied. call right after the renderer's setupRotations, before
-    // poseBody
+    // draws a partner emote player at their spot and facing (see PartnerLink) instead of where they stand, eased in and
+    // out with the emote. height stays so nobody sinks into a block. x/z is where the renderer draws the player this
+    // frame, bodyRot the body facing it applied. call right after setupRotations, before poseBody
     public static void alignPartner(PoseStack poseStack, EmotePlayback.Frame frame, double x, double z, float bodyRot) {
         PartnerLink link = frame.link();
         if (link == null) {
@@ -158,7 +157,7 @@ public final class EmoteRenderer {
         rotate(poseStack, Axis.YP.rotationDegrees(180 - yaw));
     }
 
-    // applies the whole-body (body bone) transform, call right after the renderer's setupRotations
+    // applies the whole body (body bone) transform, call right after setupRotations
     public static void poseBody(PoseStack poseStack, EmotePlayback.Frame frame) {
         frame.animation().sample(frame.seconds(), POSE);
         if (!POSE.hasRotation(Part.BODY) && !POSE.hasPosition(Part.BODY)) {
@@ -178,9 +177,40 @@ public final class EmoteRenderer {
         poseStack.translate(0, -pivot, 0);
     }
 
+    // takes the body bone transform back out of a pose stack in model space (as render layers get it), for things
+    // that stay on the ground while the emote moves the body
+    public static void undoBody(PoseStack poseStack, EmotePlayback.Frame frame) {
+        frame.animation().sample(frame.seconds(), POSE);
+        if (!POSE.hasRotation(Part.BODY) && !POSE.hasPosition(Part.BODY)) {
+            return;
+        }
+
+        // model space back to the frame poseBody worked in, see PlayerRendererMixin
+        float scale = PLAYER_MODEL_SCALE;
+        poseStack.translate(0, 1.501F, 0);
+        poseStack.scale(1 / scale, 1 / scale, 1 / scale);
+        poseStack.scale(-1, -1, 1);
+
+        // poseBody backwards
+        float weight = frame.weight();
+        double pivot = PoseSolver.BODY_PIVOT_Y * scale;
+        poseStack.translate(0, pivot, 0);
+        rotate(poseStack, Axis.XP.rotation((float) (-POSE.rotation(Part.BODY, 0) * weight)));
+        rotate(poseStack, Axis.YP.rotation((float) (-POSE.rotation(Part.BODY, 1) * weight)));
+        rotate(poseStack, Axis.ZP.rotation((float) (-POSE.rotation(Part.BODY, 2) * weight)));
+        poseStack.translate(
+                -POSE.position(Part.BODY, 0) * weight * scale,
+                -POSE.position(Part.BODY, 1) * weight * scale - pivot,
+                -POSE.position(Part.BODY, 2) * weight * scale);
+
+        poseStack.scale(-1, -1, 1);
+        poseStack.scale(scale, scale, scale);
+        poseStack.translate(0, -1.501F, 0);
+    }
+
     //? if <1.21.2 {
-    // model parts are shared by every player drawn with the same renderer and vanilla does not reset all values each
-    // frame, so undo what an emote may have changed on the previous player
+    // model parts are shared by every player of the same renderer and vanilla does not reset all values each frame,
+    // undo what an emote changed on the previous player
     public static void resetPose(HumanoidModel<?> model) {
         model.head.x = 0;
         model.head.z = 0;
@@ -198,7 +228,7 @@ public final class EmoteRenderer {
         }
     }
 
-    // armor copies the pose of the player model (HumanoidModel#copyPropertiesTo), and its bends with it
+    // armor copies the player model pose (HumanoidModel#copyPropertiesTo), bends included
     public static void copyBends(HumanoidModel<?> from, HumanoidModel<?> to) {
         ((BendablePart) (Object) to.rightArm).playeremotes$setBend(((BendablePart) (Object) from.rightArm).playeremotes$bend());
         ((BendablePart) (Object) to.leftArm).playeremotes$setBend(((BendablePart) (Object) from.leftArm).playeremotes$bend());
@@ -207,8 +237,8 @@ public final class EmoteRenderer {
     }
     //?}
 
-    // moves the pose stack like the emote moves the torso of a standing player, for layers drawn relative to the whole
-    // body that should bend with the torso: the elytra, and the cape before 1.21.2
+    // moves the pose stack like the emote moves the torso of a standing player, for layers drawn relative to the
+    // whole body that should bend with the torso: elytra, and the cape before 1.21.2
     public static void followTorso(PoseStack poseStack, @Nullable EmotePlayback.Frame frame) {
         if (frame == null) {
             return;
@@ -228,11 +258,11 @@ public final class EmoteRenderer {
         }
     }
 
-    // world position of a locator of an emoting player: a bone's far end (hands, feet, head center, torso center) in the
-    // emote's pose, unknown or missing locators mean the torso
+    // world position of a locator: a bone's far end (hands, feet, head center, torso center) in the emote's pose,
+    // unknown or missing locators mean the torso
     public static Vec3 locatorPosition(Player player, EmotePlayback.Frame frame, @Nullable String locator) {
         Part part = locatorPart(locator);
-        // the emote over a standing player, good enough for where an effect starts
+        // emote over a standing player, good enough for where an effect starts
         for (Part modelPart : Part.MODEL_PARTS) {
             float[] values = SOLVER.parts[modelPart.ordinal()];
             values[0] = modelPart.originX;
@@ -244,7 +274,7 @@ public final class EmoteRenderer {
         frame.animation().sample(frame.seconds(), POSE);
         SOLVER.solve(POSE, frame.look(), frame.weight());
 
-        // the transforms the player renderer applies, see PlayerRendererMixin
+        // transforms the player renderer applies, see PlayerRendererMixin
         PoseStack stack = new PoseStack();
         PartnerLink link = frame.link();
         // partner emotes draw the player at their spot, see alignPartner
@@ -258,7 +288,7 @@ public final class EmoteRenderer {
         stack.translate(values[0] / 16F, values[1] / 16F, values[2] / 16F);
         rotate(stack, new Quaternionf().rotationZYX(values[5], values[4], values[3]));
         float[] end = LOCATOR_ENDS[part.ordinal()];
-        // hands and feet follow a bent limb's lower half, which turns around the joint in the middle of the limb
+        // hands and feet follow a bent limb's lower half, which turns around the joint in the limb's middle
         if (part.isLimb() && SOLVER.bent[part.lower().ordinal()]
                 && PlayerEmotesClient.config().limbBends != EmoteConfig.LimbBends.OFF) {
             float[] bend = SOLVER.parts[part.lower().ordinal()];
@@ -303,7 +333,7 @@ public final class EmoteRenderer {
 
         Part part = Part.byBoneName(name);
         if (part != null && part.parent != null && part.parent.isLimb()) {
-            // a lower limb half names its limb's far end
+            // lower half names its limb's far end
             return part.parent;
         }
 

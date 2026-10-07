@@ -2,8 +2,8 @@ package com.yamikhal.playeremotes.anim;
 
 import java.util.Locale;
 
-// easing curves, named like the GeckoLib Blockbench plugin (easeInOutQuad, easeOutBack...). curves that take a
-// parameter read it from the keyframe's easingArgs, NaN means "use the default"
+// easing curves named like the GeckoLib Blockbench plugin (easeInOutQuad, easeOutBack...), curves with a
+// parameter read it from easingArgs, NaN means default
 public enum Ease {
     LINEAR {
         @Override
@@ -11,7 +11,7 @@ public enum Ease {
             return t;
         }
     },
-    // jumps in arg (default 2) discrete steps
+    // jumps in arg (default 2) steps
     STEP {
         @Override
         public double apply(double t, double arg) {
@@ -229,7 +229,7 @@ public enum Ease {
         }
     };
 
-    // t is the progress in [0, 1], arg an optional curve parameter, NaN for the default
+    // t is progress in [0, 1], arg optional curve parameter, NaN for default
     public abstract double apply(double t, double arg);
 
     // parses easeInOutQuad, ease_in_out_quad, linear, step...

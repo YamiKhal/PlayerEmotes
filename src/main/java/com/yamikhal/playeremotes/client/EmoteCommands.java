@@ -23,8 +23,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.CompletableFuture;
 
-// /emote <emote>, /emoteaccept and /emotesync <player>, generic over the command source which differs per loader,
-// the commands only use the client itself
+// /emote <emote>, /emoteaccept and /emotesync <player>, generic over the command source since it differs per
+// loader, commands only use the client itself
 public final class EmoteCommands {
 
     private static final int SUCCESS = 1;
@@ -47,7 +47,7 @@ public final class EmoteCommands {
                         .executes(context -> syncWith(StringArgumentType.getString(context, "player")))));
     }
 
-    // finds an emote by full id, by path when that is unique, or by its (translated) name
+    // finds an emote by full id, by path when unique, or by its (translated) name
     @Nullable
     static Emote findEmote(String input) {
         if (input.isEmpty()) {
@@ -72,7 +72,7 @@ public final class EmoteCommands {
             }
         }
 
-        // prefer this mod's emote when several namespaces share the path
+        // prefer our own emote when namespaces share the path
         if (pathMatches > 1) {
             Emote own = EmoteRegistry.get(PlayerEmotes.id(query));
             if (own != null) {

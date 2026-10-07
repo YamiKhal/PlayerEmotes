@@ -7,8 +7,8 @@ import net.minecraft.server.level.ServerPlayer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
-// dev helper for the partner emote test (see the client's DevPartnerTest): if playeremotes-partnertest exists
-// in the server directory, PlayerA and PlayerB are placed facing each other once both are online
+// dev helper for the partner test (see DevPartnerTest): with playeremotes-partnertest in the server directory,
+// places PlayerA and PlayerB facing each other once both are online
 final class DevPartnerSetup {
 
     private static Boolean enabled;

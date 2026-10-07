@@ -18,17 +18,17 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.IntConsumer;
 
-// the emote picker: 8 bordered slots around a page switcher, EmoteConfig#PAGES pages. slot 0 is at the bottom, going
-// counter-clockwise (right, top, left), so the number keys keep their place from the radial wheel. slots show a 3D
+// emote picker: 8 bordered slots around a page switcher, EmoteConfig#PAGES pages. slot 0 at the bottom, going
+// counter clockwise (right, top, left), number keys keep their place from the radial wheel. slots show a 3D
 // preview that plays while hovered
 public final class EmoteWheel {
 
     // slot width relative to its height
     private static final float ASPECT = 1.55F;
-    // space between slots relative to the slot height
+    // space between slots relative to slot height
     private static final float GAP = 0.12F;
     private static final int BUTTON_SIZE = 20;
-    // largest slot height in GUI units, so the wheel keeps a container-like size at any GUI scale
+    // largest slot height in GUI units, keeps a container like size at any GUI scale
     private static final int MAX_CELL_HEIGHT = 40;
     // grid column and row of each slot
     private static final int[][] CELLS = {{1, 2}, {2, 2}, {2, 1}, {2, 0}, {1, 0}, {0, 0}, {0, 1}, {0, 2}};
@@ -42,7 +42,7 @@ public final class EmoteWheel {
     private int cellHeight;
     private int gap;
 
-    // centers the wheel in the given area, as large as it fits up to its maximum size
+    // centers the wheel in the area, as large as fits up to its max size
     public void setArea(int areaX, int areaY, int areaWidth, int areaHeight) {
         int fromHeight = (int) (areaHeight / (3 + 2 * GAP));
         int fromWidth = (int) (areaWidth / (3 * ASPECT + 2 * GAP));
@@ -73,7 +73,7 @@ public final class EmoteWheel {
         page = Math.floorMod(page + delta, EmoteConfig.PAGES);
     }
 
-    // the previous/next page buttons in the center, add them to the screen after setArea
+    // previous/next page buttons in the center, add them after setArea
     public List<Button> pageButtons() {
         int centerX = this.x + this.width() / 2;
         int buttonY = this.y + this.height() / 2 - BUTTON_SIZE / 2;
@@ -85,12 +85,12 @@ public final class EmoteWheel {
                         .bounds(centerX + offset, buttonY, BUTTON_SIZE, BUTTON_SIZE).build());
     }
 
-    // highlightEmpty makes empty slots highlight on hover (true when editing), returns the hovered slot or -1
+    // highlightEmpty highlights empty slots on hover (true when editing), returns hovered slot or -1
     public int render(Canvas canvas, int mouseX, int mouseY, boolean highlightEmpty) {
         return this.render(canvas, mouseX, mouseY, highlightEmpty, -1);
     }
 
-    // focused is the slot focused with the keyboard, highlighted when the mouse is not over one
+    // focused is the keyboard focused slot, highlighted when the mouse is not over one
     public int render(Canvas canvas, int mouseX, int mouseY, boolean highlightEmpty, int focused) {
         Font font = Minecraft.getInstance().font;
         int hovered = this.slotAt(mouseX, mouseY);
@@ -126,8 +126,8 @@ public final class EmoteWheel {
         return hovered;
     }
 
-    // invisible buttons over the slots, for keyboard focus (Tab, arrows, Enter), narration and controller mods whose
-    // cursor snaps to buttons, add them to the screen after setArea
+    // invisible buttons over the slots for keyboard focus (Tab, arrows, Enter), narration and controller mods that
+    // snap to buttons, add them after setArea
     public List<Button> slotButtons(IntConsumer onPress) {
         List<Button> buttons = new ArrayList<>();
         for (int slot = 0; slot < EmoteConfig.SLOTS; slot++) {
@@ -139,7 +139,7 @@ public final class EmoteWheel {
                         return emote != null ? emote.name().copy() : Component.translatable("playeremotes.wheel.empty_slot", index + 1);
                     })
                     .build();
-            // the wheel draws the slots, the button only takes input
+            // wheel draws the slots, button only takes input
             button.setAlpha(0);
             buttons.add(button);
         }
@@ -164,14 +164,6 @@ public final class EmoteWheel {
         return mouseX >= this.x && mouseY >= this.y && mouseX < this.x + this.width() && mouseY < this.y + this.height();
     }
 
-    private int cellX(int column) {
-        return this.x + column * (this.cellWidth + this.gap);
-    }
-
-    private int cellY(int row) {
-        return this.y + row * (this.cellHeight + this.gap);
-    }
-
     public static int page() {
         return page;
     }
@@ -180,5 +172,13 @@ public final class EmoteWheel {
     public static Emote emoteAt(int slot) {
         ResourceLocation id = PlayerEmotesClient.config().wheelSlot(page, slot);
         return id == null ? null : EmoteRegistry.get(id);
+    }
+
+    private int cellX(int column) {
+        return this.x + column * (this.cellWidth + this.gap);
+    }
+
+    private int cellY(int row) {
+        return this.y + row * (this.cellHeight + this.gap);
     }
 }

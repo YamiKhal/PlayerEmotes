@@ -3,23 +3,28 @@ package com.yamikhal.playeremotes.anim;
 import java.util.List;
 import java.util.Map;
 
-// a parsed Blockbench animation, length is in seconds (the loop period for LOOP), effects are sorted by time
-public record EmoteAnimation(String name, double length, LoopMode loop, Map<Part, Bone> bones, List<Effect> effects) {
+// parsed Blockbench animation, length in seconds (loop period for LOOP), props are bones outside the skeleton by
+// lower case name, effects sorted by time
+public record EmoteAnimation(String name, double length, LoopMode loop, Map<Part, Bone> bones, Map<String, PropBone> props,
+                             List<Effect> effects) {
 
     public enum LoopMode {
         // plays once, then the emote ends
         ONCE,
         // repeats until cancelled
         LOOP,
-        // plays once and holds the last frame until cancelled ("hold_on_last_frame")
+        // plays once, holds the last frame until cancelled ("hold_on_last_frame")
         HOLD
     }
 
     // either channel may be null
     public record Bone(Channel rotation, Channel position) {}
 
-    // sound_effects / particle_effects keyframe in Blockbench, effect is a sound event or particle type id, locator
-    // is a bone name (hands for arms, feet for legs), null for the torso
+    // bone an AnimatedProp hangs on, any channel may be null
+    public record PropBone(Channel rotation, Channel position, Channel scale) {}
+
+    // sound_effects / particle_effects keyframe, effect is a sound event or particle type id, locator a bone name
+    // (hands for arms, feet for legs), null for torso
     public record Effect(double time, Kind kind, String effect, String locator, float volume, float pitch) {
 
         public enum Kind {
@@ -38,6 +43,36 @@ public record EmoteAnimation(String name, double length, LoopMode loop, Map<Part
 
     public boolean isFinished(double time) {
         return this.loop == LoopMode.ONCE && time >= this.length;
+    }
+
+    // prop bone at time into out: position in pixels, rotation in degrees (both Blockbench values), scale. false if
+    // the animation lacks the bone, out is then the rest pose
+    public boolean sampleProp(String bone, double time, Pose context, double[] out) {
+        out[0] = out[1] = out[2] = 0;
+        out[3] = out[4] = out[5] = 0;
+        out[6] = out[7] = out[8] = 1;
+        PropBone prop = this.props.get(bone);
+        if (prop == null) {
+            return false;
+        }
+
+        double animTime = this.animTime(time);
+        context.setTimes(animTime, time);
+        double[] tmp = context.scratch();
+        Channel[] channels = {prop.position(), prop.rotation(), prop.scale()};
+        for (int i = 0; i < channels.length; i++) {
+            if (channels[i] == null) continue;
+
+            channels[i].sample(animTime, context, tmp);
+            for (int axis = 0; axis < 3; axis++) {
+                // Molang like math.sqrt(-1) gives NaN, keep the rest value
+                if (Double.isFinite(tmp[axis])) {
+                    out[i * 3 + axis] = tmp[axis];
+                }
+            }
+        }
+
+        return true;
     }
 
     // time is seconds since the animation started

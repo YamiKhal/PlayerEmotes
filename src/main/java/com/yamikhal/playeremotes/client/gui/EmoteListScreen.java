@@ -9,7 +9,7 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import org.jetbrains.annotations.Nullable;
 
-// every available emote, clicking one selects it which plays its preview, clicking it again plays it
+// every available emote, first click selects it and plays its preview, second click plays it
 public class EmoteListScreen extends EmoteScreen {
 
     private final EmoteList list = new EmoteList(this::click);
@@ -26,7 +26,7 @@ public class EmoteListScreen extends EmoteScreen {
 
     @Override
     protected void init() {
-        // container-like size at any GUI scale: search box, list and buttons as one centered block
+        // container like size at any GUI scale: search box, list and buttons as one centered block
         int listWidth = Math.min(this.width - 40, 280);
         int listHeight = Math.max(60, Math.min(this.height - 100, 200));
         int left = (this.width - listWidth) / 2;

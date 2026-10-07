@@ -4,9 +4,10 @@ import com.mojang.blaze3d.platform.InputConstants;
 import com.yamikhal.playeremotes.PlayerEmotes;
 import com.yamikhal.playeremotes.client.animation.EmotePlayback;
 import com.yamikhal.playeremotes.client.animation.EmotePlayers;
-import com.yamikhal.playeremotes.client.animation.PartnerLink;
 import com.yamikhal.playeremotes.client.animation.EmoteSoundInstance;
+import com.yamikhal.playeremotes.client.animation.PartnerLink;
 import com.yamikhal.playeremotes.client.compat.EmfCompat;
+import com.yamikhal.playeremotes.client.compat.ReplayCompat;
 import com.yamikhal.playeremotes.client.config.EmoteConfig;
 import com.yamikhal.playeremotes.client.emote.Emote;
 import com.yamikhal.playeremotes.client.emote.EmoteRegistry;
@@ -31,7 +32,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
 
-// client entry point shared by all loaders
+// client entry point for all loaders
 public final class PlayerEmotesClient {
 
     //? if >=1.21.9 {
@@ -44,10 +45,10 @@ public final class PlayerEmotesClient {
             unbound("key.playeremotes.slot_3"), unbound("key.playeremotes.slot_4")};
     // reloads only the emote files, for pack makers, unbound by default
     public static final KeyMapping RELOAD = unbound("key.playeremotes.reload");
-    // accepts a partner emote request (or joins the waiting player in front), unbound by default
+    // accepts a partner request (or joins the waiting player in front), unbound by default
     public static final KeyMapping ACCEPT = unbound("key.playeremotes.accept");
 
-    // remote emotes that started longer ago than this (e.g. replays for late joiners) play without sound
+    // remote emotes older than this (e.g. replays for late joiners) play without sound
     private static final int SOUND_START_WINDOW_TICKS = 10;
 
     private static ClientNetworking networking;
@@ -60,6 +61,7 @@ public final class PlayerEmotesClient {
         config = new EmoteConfig(PlayerEmotes.platform().configDir().resolve(PlayerEmotes.MOD_ID + ".json"));
         config.load();
         EmfCompat.init();
+        ReplayCompat.init();
     }
 
     public static EmoteConfig config() {
@@ -76,7 +78,7 @@ public final class PlayerEmotesClient {
         return keys;
     }
 
-    // reloads emote packs, registered as a client resource reload listener
+    // reloads emote packs, registered as client resource reload listener
     public static void reload(ResourceManager manager) {
         EmoteRegistry.reload(manager);
     }
@@ -94,9 +96,10 @@ public final class PlayerEmotesClient {
         DevShowcase.tick(minecraft);
         DevPartnerTest.tick(minecraft);
 
-        boolean canUse = Screens.current() == null && minecraft.player != null && minecraft.player == minecraft.getCameraEntity();
+        boolean canUse = Screens.current() == null && minecraft.player != null && minecraft.player == minecraft.getCameraEntity()
+                && !EmotePlayers.inReplay();
         while (OPEN_WHEEL.consumeClick()) {
-            // whether it is still held matters for key repeats and "hold to open"
+            // still held or not matters for key repeats and "hold to open"
             if (canUse) {
                 Screens.open(new QuickWheelScreen(null, OPEN_WHEEL.isDown()));
             }
@@ -123,12 +126,10 @@ public final class PlayerEmotesClient {
         LocalEmotes.tick(minecraft);
     }
 
-    // plays an emote as the local player
     public static void play(Emote emote) {
         LocalEmotes.play(emote);
     }
 
-    // stops the local player's emote
     public static void stop() {
         LocalEmotes.stop();
     }
@@ -138,7 +139,7 @@ public final class PlayerEmotesClient {
         LocalEmotes.accept();
     }
 
-    // the newest partner emote request to the local player, null if there is none
+    // newest partner request to the local player, null if none
     @Nullable
     public static PendingRequest pendingRequest() {
         return PartnerRequests.latest();
@@ -161,41 +162,41 @@ public final class PlayerEmotesClient {
         }
     }
 
-    // whether the local player can join the emote another player is playing
+    // whether the local player can join another player's emote
     public static boolean canSyncWith(UUID other) {
         return LocalEmotes.canSyncWith(other);
     }
 
-    // joins the emote another player is playing, in step with them
+    // joins another player's emote, in step with them
     public static void syncWith(UUID other) {
         LocalEmotes.syncWith(other);
     }
 
-    // handles a message from the server, must run on the client thread
+    // handles a server message, client thread only
     public static void handleMessage(byte[] data) {
         EmoteNetwork.ClientMessage message = EmoteNetwork.decodeClient(data);
         Minecraft minecraft = Minecraft.getInstance();
-        UUID self = minecraft.player == null ? null : minecraft.player.getUUID();
+        EmotePlayers.syncLevel(minecraft);
+        LocalEmotes.syncConnection(minecraft);
+        boolean replay = EmotePlayers.inReplay();
+        // in a replay the local player is only a camera, every recorded player is someone else
+        UUID self = minecraft.player == null || replay ? null : minecraft.player.getUUID();
         if (message instanceof EmoteNetwork.RemotePlay play) {
-            // our own emotes are played locally the moment they start
+            // own emotes play locally the moment they start, the server only sends them back for recordings
             if (play.player().equals(self) || !config.showOtherEmotes) {
                 return;
             }
 
-            EmotePlayback playback = EmotePlayers.start(play.player(), null, play.animation(), play.options(), play.elapsedTicks());
+            EmotePlayback playback = EmotePlayers.startRemote(play.player(), play.animation(), play.options(), play.elapsedTicks(),
+                    play.gameTime());
             Player source = minecraft.level == null ? null : minecraft.level.getPlayerByUUID(play.player());
-            if (source != null && play.options().sound() != null && config.hearOtherSounds
-                    && play.elapsedTicks() <= SOUND_START_WINDOW_TICKS) {
+            if (source != null && play.options().sound() != null && config.hearOtherSounds && isFresh(playback)) {
                 EmoteSoundInstance.play(source, playback, play.options().sound(), false);
             }
         } else if (message instanceof EmoteNetwork.RemoteStop stop) {
             if (!stop.player().equals(self)) {
-                EmotePlayers.stop(stop.player());
+                EmotePlayers.stopRemote(stop.player(), stop.gameTime());
             }
-        } else if (message instanceof EmoteNetwork.Denied denied) {
-            LocalEmotes.denied(denied.sequence(), denied.reason());
-        } else if (message instanceof EmoteNetwork.Rules rules) {
-            LocalEmotes.rulesReceived(rules.rules());
         } else if (message instanceof EmoteNetwork.PartnerPlay play) {
             startPartner(minecraft, play, play.starter(), play.starterAnimation(), PartnerLink.starter(play), self);
             startPartner(minecraft, play, play.partner(), play.partnerAnimation(), PartnerLink.partner(play), self);
@@ -204,11 +205,22 @@ public final class PlayerEmotesClient {
                 LocalEmotes.partnerStarted(play.id());
             }
         } else if (message instanceof EmoteNetwork.PartnerEnd end) {
-            EmotePlayers.stopPartner(end.starter(), end.id());
-            EmotePlayers.stopPartner(end.partner(), end.id());
+            EmotePlayers.stopPartner(end.starter(), end.id(), end.gameTime());
+            EmotePlayers.stopPartner(end.partner(), end.id(), end.gameTime());
             if (end.starter().equals(self) || end.partner().equals(self)) {
                 LocalEmotes.partnerEnded(end.id());
             }
+        } else if (message instanceof EmoteNetwork.PackManifest manifest) {
+            ServerPackClient.onManifest(manifest, PlayerEmotesClient::send, !replay);
+        } else if (message instanceof EmoteNetwork.PackChunk chunk) {
+            ServerPackClient.onChunk(chunk);
+        } else if (replay) {
+            // rest was meant for the recording player: their denials, requests and the server's answers
+            return;
+        } else if (message instanceof EmoteNetwork.Denied denied) {
+            LocalEmotes.denied(denied.sequence(), denied.reason());
+        } else if (message instanceof EmoteNetwork.Rules rules) {
+            LocalEmotes.rulesReceived(rules.rules());
         } else if (message instanceof EmoteNetwork.Request request) {
             if (config.acceptRequests) {
                 PartnerRequests.received(request);
@@ -219,15 +231,12 @@ public final class PlayerEmotesClient {
             String key = "playeremotes.partner.status." + status.code().name().toLowerCase(Locale.ROOT);
             String name = ChatFormatting.stripFormatting(status.name());
             Messages.overlay(Component.translatable(key, name == null ? "" : name));
-        } else if (message instanceof EmoteNetwork.PackManifest manifest) {
-            ServerPackClient.onManifest(manifest, PlayerEmotesClient::send);
-        } else if (message instanceof EmoteNetwork.PackChunk chunk) {
-            ServerPackClient.onChunk(chunk);
         }
     }
 
+    // replay world has no server to talk to
     static boolean canSend() {
-        return networking != null && networking.canSend();
+        return networking != null && !EmotePlayers.inReplay() && networking.canSend();
     }
 
     static void send(byte[] message) {
@@ -265,20 +274,26 @@ public final class PlayerEmotesClient {
             return;
         }
 
-        // the emote's sound is the starter's, both playing it would double it
+        // sound belongs to the starter, both playing it would double it
         boolean withSound = player.equals(play.starter()) && play.options().sound() != null
-                && (own ? config.playEmoteSounds : config.hearOtherSounds) && play.elapsedTicks() <= SOUND_START_WINDOW_TICKS;
-        EmotePlayback playback = EmotePlayers.startPartner(player, animation, play.options(), play.elapsedTicks(), link);
+                && (own ? config.playEmoteSounds : config.hearOtherSounds);
+        EmotePlayback playback = EmotePlayers.startPartner(player, animation, play, link);
         Player source = minecraft.level == null ? null : minecraft.level.getPlayerByUUID(player);
-        if (withSound && source != null) {
+        if (withSound && source != null && isFresh(playback)) {
             EmoteSoundInstance.play(source, playback, play.options().sound(), own);
         }
     }
 
-    // a partner emote request to the local player, names are plain text
+    // whether the emote started just now and not long ago (late viewer, or a jump in a replay)
+    private static boolean isFresh(EmotePlayback playback) {
+        float elapsed = EmotePlayers.time(0) - playback.startTime();
+        return elapsed >= 0 && elapsed <= SOUND_START_WINDOW_TICKS;
+    }
+
+    // partner request to the local player, names are plain text
     public record PendingRequest(UUID starter, String starterName, String emoteName) {}
 
-    // sends messages to the server, implemented per loader
+    // sends messages to the server, one per loader
     public interface ClientNetworking {
 
         boolean canSend();

@@ -1,13 +1,14 @@
 package com.yamikhal.playeremotes.client.preview;
 
 //? if >=1.21.9 {
-/*import com.mojang.blaze3d.platform.Lighting;
-import com.mojang.blaze3d.vertex.PoseStack;
+/*import com.mojang.blaze3d.vertex.PoseStack;
 import com.yamikhal.playeremotes.PlayerEmotes;
 import com.yamikhal.playeremotes.client.animation.EmotePlayback;
+import com.yamikhal.playeremotes.client.animation.EmoteProps;
 import com.yamikhal.playeremotes.client.animation.EmoteRenderState;
 import com.yamikhal.playeremotes.client.gui.Canvas;
 import com.yamikhal.playeremotes.mixin.client.GuiGraphicsAccessor;
+import com.yamikhal.playeremotes.network.AnimatedProp;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.navigation.ScreenRectangle;
 import net.minecraft.client.gui.render.pip.PictureInPictureRenderer;
@@ -17,6 +18,7 @@ import net.minecraft.core.ClientAsset;
 import net.minecraft.world.entity.player.PlayerModelPart;
 import net.minecraft.world.entity.player.PlayerModelType;
 import net.minecraft.world.entity.player.PlayerSkin;
+import org.jetbrains.annotations.Nullable;
 import org.joml.Quaternionf;
 
 import java.util.ArrayList;
@@ -34,12 +36,12 @@ import net.minecraft.client.renderer.state.CameraRenderState;
 ^///?} else
 import net.minecraft.client.renderer.feature.FeatureRenderDispatcher;
 
-// draws emote previews through the deferred GUI renderer (1.21.9+). a vanilla picture-in-picture renderer shows only
-// one element per frame, because all its elements share one texture, so every preview on screen gets its own state
-// class and renderer from a fixed pool
+// draws previews through the deferred GUI renderer (1.21.9+). a vanilla picture-in-picture renderer shows only
+// one element per frame since its elements share one texture, so every preview gets its own state class and
+// renderer from a fixed pool
 public final class PreviewPictures {
 
-    // fallback when there is no local player to take the skin from
+    // fallback without a local player to take the skin from
     private static final PlayerSkin FALLBACK_SKIN = PlayerSkin.insecure(
             new ClientAsset.ResourceTexture(PlayerEmotes.id("entity/preview_skin"), PreviewRenderer.SKIN),
             null, null, PlayerModelType.WIDE);
@@ -49,7 +51,7 @@ public final class PreviewPictures {
 
     private PreviewPictures() {}
 
-    // adds the pool's renderers to the vanilla ones, called while the game renderer is created
+    // adds the pool's renderers to the vanilla ones, while the game renderer is created
     public static List<PictureInPictureRenderer<?>> withRenderers(List<PictureInPictureRenderer<?>> vanilla) {
         List<PictureInPictureRenderer<?>> all = new ArrayList<>(vanilla);
         for (Supplier<State> state : STATES) {
@@ -73,7 +75,7 @@ public final class PreviewPictures {
 
         AvatarRenderState avatar = new AvatarRenderState();
         LocalPlayer player = Minecraft.getInstance().player;
-        // the skin picks the wide or slim model, the fallback skin has no outer layer
+        // skin picks the wide or slim model, fallback skin has no outer layer
         avatar.skin = player != null ? player.getSkin() : FALLBACK_SKIN;
         avatar.showHat = player != null && player.isModelPartShown(PlayerModelPart.HAT);
         avatar.showJacket = player != null && player.isModelPartShown(PlayerModelPart.JACKET);
@@ -86,6 +88,7 @@ public final class PreviewPictures {
         avatar.boundingBoxWidth = 0.6F;
         avatar.boundingBoxHeight = 1.8F;
         ((EmoteRenderState) avatar).playeremotes$setFrame(frame);
+        setProps(avatar, frame, player);
 
         State state = STATES.get(next++).get();
         state.avatar = avatar;
@@ -100,6 +103,19 @@ public final class PreviewPictures {
         /^((GuiGraphicsAccessor) (Object) canvas.graphics).playeremotes$guiRenderState().addPicturesInPictureState(state);
         ^///?} else
         ((GuiGraphicsAccessor) (Object) canvas.graphics).playeremotes$guiRenderState().submitPicturesInPictureState(state);
+    }
+
+    // items of the emote, the avatar renderer draws them like on players (see ItemInHandLayerMixin)
+    private static void setProps(AvatarRenderState avatar, EmotePlayback.Frame frame, @Nullable LocalPlayer player) {
+        EmoteRenderState emote = (EmoteRenderState) avatar;
+        List<AnimatedProp> props = EmoteProps.previewProps(frame);
+        emote.playeremotes$setProps(props);
+        Minecraft minecraft = Minecraft.getInstance();
+        for (int i = 0; i < props.size(); i++) {
+            AnimatedProp prop = props.get(i);
+            minecraft.getItemModelResolver().updateForTopItem(emote.playeremotes$propItem(i), EmoteProps.previewStack(prop, player),
+                    EmoteProps.context(prop, player), minecraft.level, player, 0);
+        }
     }
 
     static class State implements PictureInPictureRenderState {
@@ -259,7 +275,7 @@ public final class PreviewPictures {
         /^@Override
         protected void renderToTexture(State state, PoseStack poseStack, SubmitNodeCollector collector) {
             Minecraft minecraft = Minecraft.getInstance();
-            minecraft.gameRenderer.lighting().setupFor(Lighting.Entry.ENTITY_IN_UI);
+            PreviewLighting.setup();
             place(poseStack);
             poseStack.rotate(new Quaternionf().rotateZ((float) Math.PI));
             minecraft.getEntityRenderDispatcher().submit(state.avatar, new CameraRenderState(), 0, 0, 0, poseStack, collector);
@@ -268,7 +284,7 @@ public final class PreviewPictures {
         @Override
         protected void renderToTexture(State state, PoseStack poseStack) {
             Minecraft minecraft = Minecraft.getInstance();
-            minecraft.gameRenderer.getLighting().setupFor(Lighting.Entry.ENTITY_IN_UI);
+            PreviewLighting.setup();
             place(poseStack);
             poseStack.mulPose(new Quaternionf().rotateZ((float) Math.PI));
             FeatureRenderDispatcher features = minecraft.gameRenderer.getFeatureRenderDispatcher();
@@ -277,7 +293,7 @@ public final class PreviewPictures {
         }
         //?}
 
-        // the origin is the texture center, in blocks with y pointing down: move it to the feet
+        // origin is the texture center, in blocks with y down, move it to the feet
         private static void place(PoseStack poseStack) {
             poseStack.translate(0, (0.5F - PreviewRenderer.FLOOR) / PreviewRenderer.SCALE, 0);
         }

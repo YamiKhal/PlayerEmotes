@@ -9,14 +9,12 @@ import com.yamikhal.playeremotes.server.EmotePermissions;
 import com.yamikhal.playeremotes.server.EmoteTracker;
 import com.yamikhal.playeremotes.server.ServerCommands;
 import com.yamikhal.playeremotes.server.ServerPacks;
-import net.minecraft.server.packs.resources.ResourceManagerReloadListener;
-import net.minecraftforge.event.AddReloadListenerEvent;
-import net.minecraftforge.event.TickEvent;
-import net.minecraftforge.server.ServerLifecycleHooks;
-import net.minecraftforge.event.RegisterCommandsEvent;
-import net.minecraftforge.server.permission.events.PermissionGatherEvent;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.server.packs.resources.ResourceManagerReloadListener;
+import net.minecraftforge.event.AddReloadListenerEvent;
+import net.minecraftforge.event.RegisterCommandsEvent;
+import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.event.entity.player.PlayerEvent;
 import net.minecraftforge.fml.ModList;
 import net.minecraftforge.fml.common.Mod;
@@ -24,6 +22,8 @@ import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 import net.minecraftforge.fml.loading.FMLEnvironment;
 import net.minecraftforge.fml.loading.FMLPaths;
 import net.minecraftforge.network.PacketDistributor;
+import net.minecraftforge.server.ServerLifecycleHooks;
+import net.minecraftforge.server.permission.events.PermissionGatherEvent;
 
 import java.nio.file.Path;
 
@@ -44,7 +44,7 @@ import net.minecraftforge.common.MinecraftForge;
 public class PlayerEmotesForge {
 
     //? if >=1.21 {
-    // a raw byte channel, the message format is defined by EmoteNetwork. optional keeps vanilla clients/servers compatible
+    // raw byte channel, EmoteNetwork defines the format. optional keeps vanilla clients/servers compatible
     static final EventNetworkChannel CHANNEL = ChannelBuilder.named(PlayerEmotes.id("main"))
             .networkProtocolVersion(EmoteNetwork.PROTOCOL)
             .optional()
@@ -81,7 +81,7 @@ public class PlayerEmotesForge {
         });
         PlayerEvent.PlayerRespawnEvent.BUS.addListener(event -> {
             if (event.getEntity() instanceof ServerPlayer player) {
-                EmoteTracker.onRespawnOrTeleport(player);
+                EmoteTracker.onRespawn(player);
             }
         });
         PermissionGatherEvent.Nodes.BUS.addListener(ForgePermissions::register);
@@ -149,7 +149,7 @@ public class PlayerEmotesForge {
         });
         MinecraftForge.EVENT_BUS.addListener((PlayerEvent.PlayerRespawnEvent event) -> {
             if (event.getEntity() instanceof ServerPlayer player) {
-                EmoteTracker.onRespawnOrTeleport(player);
+                EmoteTracker.onRespawn(player);
             }
         });
         MinecraftForge.EVENT_BUS.addListener(ForgePermissions::register);

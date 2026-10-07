@@ -7,7 +7,9 @@ import com.google.gson.JsonParser;
 import com.yamikhal.playeremotes.PlayerEmotes;
 import com.yamikhal.playeremotes.anim.AnimationParser;
 import com.yamikhal.playeremotes.anim.EmoteAnimation;
+import com.yamikhal.playeremotes.anim.Part;
 import com.yamikhal.playeremotes.client.animation.AnimationRegistry;
+import com.yamikhal.playeremotes.network.AnimatedProp;
 import com.yamikhal.playeremotes.network.EmoteNetwork;
 import com.yamikhal.playeremotes.network.EmoteProp;
 import com.yamikhal.playeremotes.network.EmoteSound;
@@ -44,7 +46,7 @@ import java.util.concurrent.ThreadLocalRandom;
 //     pack.json            optional
 //     robot_dance.json     animation files, may be nested further
 //
-// every animation becomes an emote with default settings, unless pack.json configures it or uses it as a variant of
+// every animation becomes an emote with default settings, unless pack.json configures it or uses it as variant of
 // another emote:
 //
 // {
@@ -65,7 +67,7 @@ import java.util.concurrent.ThreadLocalRandom;
 //   }
 // }
 //
-// emote names and descriptions come from the lang keys emote.<namespace>.<name> and emote.<namespace>.<name>.description,
+// emote names and descriptions from lang keys emote.<namespace>.<name> and emote.<namespace>.<name>.description,
 // pack names from emote_pack.<pack>
 public final class EmoteRegistry {
 
@@ -99,7 +101,7 @@ public final class EmoteRegistry {
         return all;
     }
 
-    // picks the animation to play for an emote right now, null if none is available
+    // picks the animation to play right now, null if none available
     @Nullable
     public static ResourceLocation pickAnimation(Emote emote, Minecraft minecraft) {
         List<ResourceLocation> group = emote.animations();
@@ -135,7 +137,7 @@ public final class EmoteRegistry {
         Map<ResourceLocation, FileSource> files = new TreeMap<>();
         manager.listResources(DIRECTORY, path -> path.getPath().endsWith(".json"))
                 .forEach((id, resource) -> files.put(id, resource::openAsReader));
-        // emote packs sent by the server come last, so they win over local ones with the same file name
+        // server packs come last, they win over local files with the same name
         for (Map.Entry<String, byte[]> file : ServerPackClient.files().entrySet()) {
             int slash = file.getKey().indexOf('/');
             ResourceLocation id = ResourceLocation.tryParse(file.getKey().substring(0, slash) + ":" + DIRECTORY + file.getKey().substring(slash));
@@ -179,11 +181,22 @@ public final class EmoteRegistry {
         Map<ResourceLocation, Emote> loaded = new LinkedHashMap<>();
         Map<String, List<Source>> byPack = new LinkedHashMap<>();
         for (Source source : sources.values()) {
+            List<Emote> read;
+            try {
+                read = readEmotes(source);
+            } catch (RuntimeException e) {
+                // broken pack.json must not fail the whole resource reload
+                PlayerEmotes.LOGGER.error("Failed to load emote pack '{}' of {}: {}", source.pack, source.namespace, e.getMessage());
+                continue;
+            }
+
             byPack.computeIfAbsent(source.pack, key -> new ArrayList<>()).add(source);
-            for (Emote emote : readEmotes(source)) {
+            for (Emote emote : read) {
                 if (loaded.put(emote.id(), emote) != null) {
                     PlayerEmotes.LOGGER.warn("Emote {} is defined in more than one pack, the one in '{}' wins", emote.id(), source.pack);
                 }
+
+                warnUnusedProps(emote);
             }
         }
 
@@ -210,13 +223,17 @@ public final class EmoteRegistry {
         for (Source source : sources) {
             if (source.info == null) continue;
 
-            // the first namespace that describes the pack wins, but prefer our own for the default pack
+            // first namespace describing the pack wins, but our own wins for the default pack
             boolean own = source.namespace.equals(PlayerEmotes.MOD_ID);
             if (name == null || own) {
-                name = GsonHelper.getAsString(source.info, "name", name);
-                description = GsonHelper.getAsString(source.info, "description", description);
-                author = readAuthor(source.info, author);
-                version = GsonHelper.getAsString(source.info, "version", version);
+                try {
+                    name = GsonHelper.getAsString(source.info, "name", name);
+                    description = GsonHelper.getAsString(source.info, "description", description);
+                    author = readAuthor(source.info, author);
+                    version = GsonHelper.getAsString(source.info, "version", version);
+                } catch (RuntimeException e) {
+                    PlayerEmotes.LOGGER.error("Invalid info in pack.json of emote pack '{}' of {}: {}", id, source.namespace, e.getMessage());
+                }
             }
         }
 
@@ -253,8 +270,8 @@ public final class EmoteRegistry {
         JsonObject configured = source.info != null && source.info.has("emotes") ? source.info.getAsJsonObject("emotes") : new JsonObject();
         Set<ResourceLocation> used = new HashSet<>();
         for (Map.Entry<String, JsonElement> entry : configured.entrySet()) {
-            ResourceLocation id = PlayerEmotes.id(source.namespace, entry.getKey());
             try {
+                ResourceLocation id = PlayerEmotes.id(source.namespace, entry.getKey());
                 Emote emote = read(id, source.pack, entry.getValue().getAsJsonObject());
                 used.addAll(emote.animations());
                 emote.variants().values().forEach(used::addAll);
@@ -265,12 +282,12 @@ public final class EmoteRegistry {
                 }
 
                 result.add(emote);
-            } catch (Exception e) {
-                PlayerEmotes.LOGGER.error("Failed to load emote {} of pack '{}': {}", id, source.pack, e.getMessage());
+            } catch (RuntimeException e) {
+                PlayerEmotes.LOGGER.error("Failed to load emote {}:{} of pack '{}': {}", source.namespace, entry.getKey(), source.pack, e.getMessage());
             }
         }
 
-        // animations that are not configured and not part of another emote become emotes on their own
+        // animations not configured and not part of another emote become emotes on their own
         for (String animation : source.animations) {
             ResourceLocation id = PlayerEmotes.id(source.namespace, animation);
             if (configured.has(animation) || used.contains(id)) continue;
@@ -321,13 +338,14 @@ public final class EmoteRegistry {
                 seconds(json, "blend_out", 0.2F),
                 readSound(json.get("sound"), namespace),
                 readProp(json.get("item"), namespace),
+                readProps(json.get("props")),
                 readPartner(json.get("partner"), namespace, defaults),
                 GsonHelper.getAsInt(json, "order", 0));
     }
 
     // "partner": {"intro": "hug_intro", "action": "hug", "partner_action": "hug", "distance": 0.6}
-    // the intro plays (and should hold its last frame) until someone joins, then the starter plays action and the
-    // partner partner_action (default: the same), distance blocks apart
+    // intro plays (should hold its last frame) until someone joins, then starter plays action and partner
+    // partner_action (default same), distance blocks apart
     @Nullable
     private static EmoteNetwork.PartnerSpec readPartner(@Nullable JsonElement json, String namespace, List<ResourceLocation> defaults) {
         if (json == null || !json.isJsonObject()) {
@@ -363,7 +381,107 @@ public final class EmoteRegistry {
         return new EmoteProp(resolveItem(GsonHelper.getAsString(object, "id")), hand);
     }
 
-    // item ids default to the minecraft namespace, like everywhere else in the game
+    // "props": {"<bone>": "minecraft:stick"} or {"<bone>": {"item": "held", "attach": "right_hand", "display": "hand"}}
+    // item is an id or held (the hand it is attached to, else the main hand), held_right, held_left, held_mainhand,
+    // held_offhand, default held. attach defaults from the bone name (right, left, head, body or torso), else root
+    private static List<AnimatedProp> readProps(@Nullable JsonElement json) {
+        if (json == null || !json.isJsonObject()) {
+            return List.of();
+        }
+
+        List<AnimatedProp> props = new ArrayList<>();
+        for (Map.Entry<String, JsonElement> entry : json.getAsJsonObject().entrySet()) {
+            String bone = entry.getKey().toLowerCase(Locale.ROOT);
+            if (bone.isEmpty() || bone.length() > AnimatedProp.MAX_BONE_LENGTH) {
+                throw new IllegalArgumentException("Invalid prop bone name '" + entry.getKey() + "'");
+            }
+
+            // player bones never reach the props, such a prop would never move
+            if (Part.byBoneName(bone) != null) {
+                throw new IllegalArgumentException("Prop bone '" + entry.getKey() + "' is a player bone");
+            }
+
+            if (props.size() >= AnimatedProp.MAX_PROPS) {
+                throw new IllegalArgumentException("More than " + AnimatedProp.MAX_PROPS + " props");
+            }
+
+            if (!entry.getValue().isJsonObject() && !entry.getValue().isJsonPrimitive()) {
+                throw new IllegalArgumentException("Prop '" + entry.getKey() + "' must be an item or an object");
+            }
+
+            JsonObject object = entry.getValue().isJsonObject() ? entry.getValue().getAsJsonObject() : new JsonObject();
+            String item = entry.getValue().isJsonPrimitive() ? entry.getValue().getAsString()
+                    : GsonHelper.getAsString(object, "item", "held");
+            AnimatedProp.Attach attach = object.has("attach")
+                    ? attach(GsonHelper.getAsString(object, "attach"))
+                    : bone.contains("right") ? AnimatedProp.Attach.RIGHT_HAND
+                    : bone.contains("left") ? AnimatedProp.Attach.LEFT_HAND
+                    : bone.contains("head") ? AnimatedProp.Attach.HEAD
+                    : bone.contains("body") || bone.contains("torso") ? AnimatedProp.Attach.BODY
+                    : AnimatedProp.Attach.ROOT;
+            AnimatedProp.Display display = object.has("display") ? display(GsonHelper.getAsString(object, "display"))
+                    : AnimatedProp.Display.AUTO;
+            AnimatedProp.Source source = switch (item.trim().toLowerCase(Locale.ROOT)) {
+                case "held" -> attach == AnimatedProp.Attach.RIGHT_HAND ? AnimatedProp.Source.HELD_RIGHT
+                        : attach == AnimatedProp.Attach.LEFT_HAND ? AnimatedProp.Source.HELD_LEFT
+                        : AnimatedProp.Source.HELD_MAINHAND;
+                case "held_right" -> AnimatedProp.Source.HELD_RIGHT;
+                case "held_left" -> AnimatedProp.Source.HELD_LEFT;
+                case "held_mainhand" -> AnimatedProp.Source.HELD_MAINHAND;
+                case "held_offhand" -> AnimatedProp.Source.HELD_OFFHAND;
+                default -> AnimatedProp.Source.ITEM;
+            };
+            props.add(new AnimatedProp(bone, source, source == AnimatedProp.Source.ITEM ? resolveItem(item) : null, attach, display));
+        }
+
+        return List.copyOf(props);
+    }
+
+    // prop whose bone no animation of the emote keys only ever sits at rest, mostly a typo in the bone name
+    private static void warnUnusedProps(Emote emote) {
+        if (emote.props().isEmpty()) {
+            return;
+        }
+
+        List<ResourceLocation> ids = new ArrayList<>(emote.animations());
+        emote.variants().values().forEach(ids::addAll);
+        if (emote.partner() != null) {
+            ids.addAll(List.of(emote.partner().intro(), emote.partner().action(), emote.partner().partnerAction()));
+        }
+
+        for (AnimatedProp prop : emote.props()) {
+            boolean keyed = ids.stream()
+                    .map(AnimationRegistry::get)
+                    .anyMatch(animation -> animation != null && animation.props().containsKey(prop.bone()));
+            if (!keyed) {
+                PlayerEmotes.LOGGER.warn("Prop bone '{}' of emote {} is in none of its animations, it stays at rest", prop.bone(), emote.id());
+            }
+        }
+    }
+
+    private static AnimatedProp.Attach attach(String name) {
+        return switch (name.toLowerCase(Locale.ROOT)) {
+            case "right_hand" -> AnimatedProp.Attach.RIGHT_HAND;
+            case "left_hand" -> AnimatedProp.Attach.LEFT_HAND;
+            case "body", "torso" -> AnimatedProp.Attach.BODY;
+            case "head" -> AnimatedProp.Attach.HEAD;
+            case "root" -> AnimatedProp.Attach.ROOT;
+            default -> throw new IllegalArgumentException("Unknown prop attach '" + name + "' (right_hand, left_hand, body, head, root)");
+        };
+    }
+
+    private static AnimatedProp.Display display(String name) {
+        return switch (name.toLowerCase(Locale.ROOT)) {
+            case "hand" -> AnimatedProp.Display.HAND;
+            case "none", "block" -> AnimatedProp.Display.NONE;
+            case "fixed" -> AnimatedProp.Display.FIXED;
+            case "ground" -> AnimatedProp.Display.GROUND;
+            case "head" -> AnimatedProp.Display.HEAD;
+            default -> throw new IllegalArgumentException("Unknown prop display '" + name + "' (hand, none, fixed, ground, head)");
+        };
+    }
+
+    // item ids default to the minecraft namespace, like everywhere in the game
     private static ResourceLocation resolveItem(String value) {
         ResourceLocation id = ResourceLocation.tryParse(value.trim().toLowerCase(Locale.ROOT));
         if (id == null) {
@@ -428,7 +546,7 @@ public final class EmoteRegistry {
         return builder.toString();
     }
 
-    // opens one emote file, from a resource pack or from the server
+    // opens one emote file, from a resource pack or the server
     private interface FileSource {
 
         Reader open() throws IOException;

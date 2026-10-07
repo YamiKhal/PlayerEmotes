@@ -2,11 +2,11 @@ package com.yamikhal.playeremotes.anim;
 
 import java.util.List;
 
-// keyframes of one bone property (rotation or position), evaluated with Blockbench semantics:
+// keyframes of one bone property (rotation or position), Blockbench rules:
 // - before the first / after the last keyframe the value is held
-// - a segment leaves keyframe A with A's post value and arrives at B's pre value
-// - lerp_mode of A decides the segment: step holds, catmullrom smooths (also used when B is catmullrom), otherwise linear
-// - easing/easingArgs (GeckoLib plugin) is read from the destination keyframe B
+// - a segment leaves A with A's post value and arrives at B's pre value
+// - A's lerp_mode picks the segment: step holds, catmullrom smooths (also when B is catmullrom), else linear
+// - easing/easingArgs (GeckoLib plugin) comes from the destination keyframe B
 public final class Channel {
 
     public enum Lerp {
@@ -29,7 +29,7 @@ public final class Channel {
         return this.frames.length == 0;
     }
 
-    // used when an animation has no explicit length
+    // for animations without explicit length
     public double lastTime() {
         return this.frames.length == 0 ? 0 : this.frames[this.frames.length - 1].time;
     }

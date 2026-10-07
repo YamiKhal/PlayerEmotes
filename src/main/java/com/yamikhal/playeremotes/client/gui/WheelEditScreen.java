@@ -11,7 +11,7 @@ import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
 import org.jetbrains.annotations.Nullable;
 
-// assigns emotes to wheel slots: pick an emote on the left, click a slot on the right, right-clicking a slot clears it
+// assigns emotes to wheel slots: pick an emote on the left, click a slot on the right, right click clears it
 public class WheelEditScreen extends EmoteScreen {
 
     private final EmoteList list = new EmoteList(this::select);
@@ -27,7 +27,7 @@ public class WheelEditScreen extends EmoteScreen {
 
     @Override
     protected void init() {
-        // list and wheel side by side as one centered block, container-like size at any GUI scale
+        // list and wheel side by side as one centered block, container like size at any GUI scale
         int blockHeight = Math.max(80, Math.min(this.height - 100, 200));
         int listWidth = Math.max(120, Math.min(this.width / 2 - 30, 220));
         this.wheel.setArea(0, 0, Math.max(100, this.width - listWidth - 60), blockHeight);
@@ -120,6 +120,7 @@ public class WheelEditScreen extends EmoteScreen {
 
     @Override
     public void removed() {
+        super.removed();
         if (this.changed) {
             PlayerEmotesClient.config().save();
         }

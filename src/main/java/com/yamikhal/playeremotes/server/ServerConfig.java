@@ -19,16 +19,16 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
-// server rules in config/playeremotes-server.json, written with defaults on first start and re-read with
+// server rules in config/playeremotes-server.json, written with defaults on first start, re-read with
 // /playeremotes reload. emote patterns are full ids (playeremotes:wave), whole namespaces (somepack:*) or bare
-// names matching any namespace (wave)
+// names for any namespace (wave)
 public final class ServerConfig {
 
     private static final String FILE = PlayerEmotes.MOD_ID + "-server.json";
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create();
     private static volatile ServerConfig current;
 
-    // when off, every emote is refused
+    // when off every emote is refused
     public final boolean enabled;
     // fewest ticks between two emotes of one player
     public final int cooldownTicks;
@@ -39,9 +39,9 @@ public final class ServerConfig {
     // whether players may join others' emotes with /emotesync
     public final boolean syncEmotes;
     public final boolean partnerEmotes;
-    // seconds a partner request waits for an answer before anyone may join instead
+    // seconds a partner request waits for an answer before anyone may join
     public final int partnerRequestSeconds;
-    // whether emote packs in data packs are sent to players
+    // whether emote packs in data packs get sent to players
     public final boolean sendServerPacks;
 
     private ServerConfig(JsonObject json) {
@@ -72,7 +72,7 @@ public final class ServerConfig {
         return config;
     }
 
-    // re-reads the file, writing it (with any missing keys) back so it documents every option
+    // re-reads the file and writes it back (with missing keys) so it documents every option
     public static synchronized ServerConfig reload() {
         Path file = PlayerEmotes.platform().configDir().resolve(FILE);
         JsonObject json = new JsonObject();
@@ -87,7 +87,16 @@ public final class ServerConfig {
             }
         }
 
-        ServerConfig config = new ServerConfig(json);
+        ServerConfig config;
+        try {
+            config = new ServerConfig(json);
+        } catch (RuntimeException e) {
+            // wrong value type, e.g. "cooldownTicks": "fast"
+            readable = false;
+            config = new ServerConfig(new JsonObject());
+            PlayerEmotes.LOGGER.error("Invalid value in {}, using defaults until it is fixed", file, e);
+        }
+
         if (readable) {
             config.write(file);
         }
@@ -138,7 +147,10 @@ public final class ServerConfig {
         List<String> patterns = new ArrayList<>();
         if (json.has(key) && json.get(key).isJsonArray()) {
             for (JsonElement element : json.getAsJsonArray(key)) {
-                patterns.add(element.getAsString().trim().toLowerCase(Locale.ROOT));
+                String pattern = element.getAsString().trim().toLowerCase(Locale.ROOT);
+                if (!pattern.isEmpty()) {
+                    patterns.add(pattern);
+                }
             }
         }
 

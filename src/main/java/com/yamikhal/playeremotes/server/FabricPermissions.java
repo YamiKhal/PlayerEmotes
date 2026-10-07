@@ -6,8 +6,8 @@ import org.jetbrains.annotations.Nullable;
 
 import java.lang.reflect.Method;
 
-// fabric-permissions-api (the permission API LuckPerms and others implement on Fabric), used through reflection
-// only when that mod is installed, so it is no build dependency
+// fabric-permissions-api (permission API LuckPerms and others implement on Fabric), through reflection and only
+// when installed, so no build dependency
 public final class FabricPermissions {
 
     private static final String MOD_ID = "fabric-permissions-api-v0";

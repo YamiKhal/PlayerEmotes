@@ -11,7 +11,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 
-// enables and disables loaded emote packs, disabled packs are hidden from the emote lists
+// turns loaded emote packs on and off, off packs are hidden from the emote lists
 public class PackScreen extends EmoteScreen {
 
     private static final int ROW_HEIGHT = 22;
@@ -105,6 +105,7 @@ public class PackScreen extends EmoteScreen {
 
     @Override
     public void removed() {
+        super.removed();
         if (this.changed) {
             PlayerEmotesClient.config().save();
         }

@@ -10,23 +10,28 @@ import com.yamikhal.playeremotes.server.EmotePermissions;
 import com.yamikhal.playeremotes.server.EmoteTracker;
 import com.yamikhal.playeremotes.server.ServerCommands;
 import com.yamikhal.playeremotes.server.ServerPacks;
-import net.minecraft.server.packs.resources.ResourceManagerReloadListener;
-import net.neoforged.neoforge.event.tick.ServerTickEvent;
-import net.neoforged.neoforge.event.RegisterCommandsEvent;
-import net.neoforged.neoforge.server.permission.events.PermissionGatherEvent;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.server.packs.resources.ResourceManagerReloadListener;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.ModList;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.loading.FMLPaths;
 import net.neoforged.neoforge.common.NeoForge;
+import net.neoforged.neoforge.event.RegisterCommandsEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
+import net.neoforged.neoforge.event.tick.ServerTickEvent;
 import net.neoforged.neoforge.network.PacketDistributor;
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
 import net.neoforged.neoforge.network.registration.PayloadRegistrar;
+import net.neoforged.neoforge.server.permission.events.PermissionGatherEvent;
 
 import java.nio.file.Path;
+
+//? if >=1.21.4 {
+/^import net.neoforged.neoforge.event.AddServerReloadListenersEvent;
+^///?} else
+import net.neoforged.neoforge.event.AddReloadListenerEvent;
 
 @Mod(PlayerEmotes.MOD_ID)
 public class PlayerEmotesNeoForge {
@@ -47,7 +52,7 @@ public class PlayerEmotesNeoForge {
         });
         NeoForge.EVENT_BUS.addListener(PlayerEvent.PlayerRespawnEvent.class, event -> {
             if (event.getEntity() instanceof ServerPlayer player) {
-                EmoteTracker.onRespawnOrTeleport(player);
+                EmoteTracker.onRespawn(player);
             }
         });
         NeoForge.EVENT_BUS.addListener(PermissionGatherEvent.Nodes.class, NeoForgePermissions::register);
@@ -55,10 +60,10 @@ public class PlayerEmotesNeoForge {
         NeoForge.EVENT_BUS.addListener(ServerTickEvent.Post.class, event -> EmoteTracker.tick(event.getServer()));
         ResourceManagerReloadListener serverPacks = ServerPacks::reload;
         //? if >=1.21.4 {
-        /^NeoForge.EVENT_BUS.addListener(net.neoforged.neoforge.event.AddServerReloadListenersEvent.class,
+        /^NeoForge.EVENT_BUS.addListener(AddServerReloadListenersEvent.class,
                 event -> event.addListener(PlayerEmotes.id("server_emotes"), serverPacks));
         ^///?} else {
-        NeoForge.EVENT_BUS.addListener(net.neoforged.neoforge.event.AddReloadListenerEvent.class, event -> event.addListener(serverPacks));
+        NeoForge.EVENT_BUS.addListener(AddReloadListenerEvent.class, event -> event.addListener(serverPacks));
         //?}
 
         if (dist.isClient()) {
@@ -67,7 +72,7 @@ public class PlayerEmotesNeoForge {
     }
 
     private static void registerPayloads(RegisterPayloadHandlersEvent event) {
-        // optional: players without the mod can still join, they just do not see emotes
+        // optional, players without the mod can still join, they just do not see emotes
         PayloadRegistrar registrar = event.registrar(String.valueOf(EmoteNetwork.PROTOCOL)).optional();
         registrar.playToServer(EmotePayload.C2S, EmotePayload.C2S_CODEC,
                 (payload, context) -> EmoteNetwork.handleServer((ServerPlayer) context.player(), payload.data()));

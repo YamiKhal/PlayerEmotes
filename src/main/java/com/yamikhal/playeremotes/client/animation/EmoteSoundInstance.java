@@ -9,8 +9,8 @@ import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.entity.Entity;
 
-// follows the emoting player. vanilla attenuation reaches 16 blocks, so the volume is faded out by hand over the
-// emote's range instead. stops together with the emote, or when the listener mutes other players' emote sounds
+// follows the emoting player. vanilla attenuation reaches 16 blocks, so volume fades by hand over the emote's
+// range instead. stops with the emote, or when the listener mutes other players' emote sounds
 public final class EmoteSoundInstance extends AbstractTickableSoundInstance {
 
     private final Entity entity;
@@ -29,6 +29,11 @@ public final class EmoteSoundInstance extends AbstractTickableSoundInstance {
         this.pitch = sound.pitch();
         this.attenuation = Attenuation.NONE;
         this.update();
+    }
+
+    // sound ends with the playback, also when another emote replaces it
+    public static void play(Entity entity, EmotePlayback playback, EmoteSound sound, boolean own) {
+        Minecraft.getInstance().getSoundManager().play(new EmoteSoundInstance(entity, playback, sound, own));
     }
 
     @Override
@@ -55,10 +60,5 @@ public final class EmoteSoundInstance extends AbstractTickableSoundInstance {
         Entity listener = Minecraft.getInstance().getCameraEntity();
         float distance = listener == null || listener == this.entity ? 0 : listener.distanceTo(this.entity);
         this.volume = this.baseVolume * Math.max(0, 1 - distance / this.range);
-    }
-
-    // the sound ends with the playback, also when another emote replaces it
-    public static void play(Entity entity, EmotePlayback playback, EmoteSound sound, boolean own) {
-        Minecraft.getInstance().getSoundManager().play(new EmoteSoundInstance(entity, playback, sound, own));
     }
 }

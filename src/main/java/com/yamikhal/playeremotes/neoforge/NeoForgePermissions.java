@@ -13,8 +13,8 @@ import net.neoforged.neoforge.server.permission.nodes.PermissionTypes;
 import java.util.EnumMap;
 import java.util.Map;
 
-// the mod's nodes in NeoForge's permission API, which permission plugins hook into, unhandled nodes resolve to
-// the node's operator level
+// mod nodes in NeoForge's permission API, which permission plugins hook into, unhandled nodes fall back to the
+// node's operator level
 final class NeoForgePermissions {
 
     private static final Map<EmotePermissions.Node, PermissionNode<Boolean>> NODES = new EnumMap<>(EmotePermissions.Node.class);
@@ -36,7 +36,7 @@ final class NeoForgePermissions {
         try {
             return PermissionAPI.getPermission(player, NODES.get(node));
         } catch (RuntimeException e) {
-            // nodes not registered (e.g. queried before the server finished starting)
+            // nodes not registered (e.g. asked before the server finished starting)
             return OpLevel.has(player, node.opLevel);
         }
     }

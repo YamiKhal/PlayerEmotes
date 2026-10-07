@@ -21,24 +21,25 @@ import org.jetbrains.annotations.Nullable;
 import java.util.Locale;
 import java.util.UUID;
 
-// the local player's emotes: starting and stopping them (played locally right away, then told to the server), what
-// cancels them, the camera while emoting and the server's rules, client thread only
+// local player's emotes: start and stop (played locally right away, then told to the server), what cancels
+// them, camera while emoting and the server's rules. in a replay the local player is only a camera and cannot
+// emote, client thread only
 final class LocalEmotes {
 
-    // whether the server was told about a local emote that has not been stopped yet
+    // whether the server knows about a local emote that is not stopped yet
     private static boolean running;
     // numbers the emotes sent to the server, so a late denial cannot stop a newer emote
     private static int sequence;
-    // the partner emote the local player is in, 0 for none
+    // partner emote the local player is in, 0 for none
     private static int partnership;
-    // when the last emote was started, in client ticks, for the server's cooldown
+    // when the last emote started, in client ticks, for the server's cooldown
     private static float lastStart = Float.NEGATIVE_INFINITY;
-    // whether the camera was switched to third person for the running emote, and in which level
+    // whether the camera went third person for the running emote, and in which level
     private static boolean cameraSwitched;
     @Nullable
     private static Object cameraLevel;
 
-    // the connection the hello was sent on, a new connection needs a new hello
+    // connection the hello went out on, a new connection needs a new hello
     @Nullable
     private static Object helloConnection;
     private static EmoteNetwork.ServerRules rules = EmoteNetwork.ServerRules.UNKNOWN;
@@ -53,28 +54,31 @@ final class LocalEmotes {
         return rules;
     }
 
-    static void tick(Minecraft minecraft) {
+    // forgets the previous server once on another one (or a replay), says hello to the new one
+    static void syncConnection(Minecraft minecraft) {
         Object connection = minecraft.getConnection();
-        if (connection != helloConnection) {
-            if (connection == null || PlayerEmotesClient.canSend()) {
-                helloConnection = connection;
-                PlayerEmotesClient.config().tickSave(true);
-                rules = EmoteNetwork.ServerRules.UNKNOWN;
-                running = false;
-                partnership = 0;
-                ServerPackClient.clear();
-                PartnerRequests.clear();
-                if (connection != null) {
-                    sendHello();
-                }
+        boolean replay = EmotePlayers.inReplay();
+        if (connection != helloConnection && (connection == null || replay || PlayerEmotesClient.canSend())) {
+            helloConnection = connection;
+            PlayerEmotesClient.config().tickSave(true);
+            rules = EmoteNetwork.ServerRules.UNKNOWN;
+            running = false;
+            partnership = 0;
+            ServerPackClient.clear();
+            PartnerRequests.clear();
+            if (connection != null && !replay) {
+                sendHello();
             }
         }
+    }
 
+    static void tick(Minecraft minecraft) {
+        syncConnection(minecraft);
         PartnerRequests.tick();
         PlayerEmotesClient.config().tickSave(false);
 
         LocalPlayer player = minecraft.player;
-        if (player == null) {
+        if (player == null || EmotePlayers.inReplay()) {
             cameraSwitched = false;
             return;
         }
@@ -84,7 +88,7 @@ final class LocalEmotes {
             stop();
             playing = false;
         } else if (!playing && running) {
-            // the emote ended on its own, let the server forget about it
+            // emote ended on its own, let the server forget it
             running = false;
             PlayerEmotesClient.send(EmoteNetwork.stopRequest());
         }
@@ -97,7 +101,7 @@ final class LocalEmotes {
     static void play(Emote emote) {
         Minecraft minecraft = Minecraft.getInstance();
         LocalPlayer player = minecraft.player;
-        if (player == null || !checkCooldown()) {
+        if (player == null || EmotePlayers.inReplay() || !checkCooldown()) {
             return;
         }
 
@@ -113,7 +117,7 @@ final class LocalEmotes {
         }
 
         EmoteNetwork.Options options = new EmoteNetwork.Options(emote.look(), emote.splitLimbs(), emote.blendInTicks(), emote.blendOutTicks(),
-                PlayerEmotesClient.config().playEmoteSounds ? emote.sound() : null, emote.prop());
+                PlayerEmotesClient.config().playEmoteSounds ? emote.sound() : null, emote.prop(), emote.props());
         EmotePlayback playback = EmotePlayers.start(player.getUUID(), emote.id(), animation, options, 0);
         if (options.sound() != null) {
             EmoteSoundInstance.play(player, playback, options.sound(), true);
@@ -127,6 +131,10 @@ final class LocalEmotes {
 
     // accepts the newest partner request, or joins the waiting player in front
     static void accept() {
+        if (EmotePlayers.inReplay()) {
+            return;
+        }
+
         if (!rules.partner()) {
             Messages.overlay(Component.translatable("playeremotes.partner.status.not_allowed").withStyle(ChatFormatting.RED));
             return;
@@ -135,7 +143,7 @@ final class LocalEmotes {
         PlayerEmotesClient.send(EmoteNetwork.accept());
     }
 
-    // the local player is one of the two of a partner emote that just started
+    // local player is one of the two of a partner emote that just started
     static void partnerStarted(int id) {
         partnership = id;
         running = true;
@@ -143,7 +151,7 @@ final class LocalEmotes {
         switchCamera(Minecraft.getInstance());
     }
 
-    // the server ended the partner emote, it already stopped it for both so nothing to send
+    // server ended the partner emote, already stopped for both so nothing to send
     static void partnerEnded(int id) {
         if (partnership != id) {
             return;
@@ -164,19 +172,19 @@ final class LocalEmotes {
         return rules.sync() && playback != null && !playback.isStopping() && playback.link() == null;
     }
 
-    // joins the emote another player is playing, at the same point in it
+    // joins the emote another player plays, at the same point in it
     static void syncWith(UUID other) {
         Minecraft minecraft = Minecraft.getInstance();
         LocalPlayer player = minecraft.player;
         EmotePlayback target = EmotePlayers.get(other);
-        if (player == null || target == null || target.isStopping() || !checkCooldown()) {
+        if (player == null || target == null || target.isStopping() || EmotePlayers.inReplay() || !checkCooldown()) {
             return;
         }
 
         int elapsed = Math.max(0, Math.round(EmotePlayers.time(0) - target.startTime()));
         EmotePlayers.start(player.getUUID(), target.emoteId(), target.animationId(), target.options().withoutSound(), elapsed);
         started(minecraft);
-        // the server starts it from the other player's start, so everyone sees both in step
+        // server starts it from the other player's start, so everyone sees both in step
         PlayerEmotesClient.send(EmoteNetwork.syncRequest(sequence, other));
     }
 
@@ -194,7 +202,7 @@ final class LocalEmotes {
         }
     }
 
-    // the server refused one of our emotes
+    // server refused one of our emotes
     static void denied(int deniedSequence, EmoteNetwork.Denial reason) {
         if (deniedSequence != sequence) {
             return;
@@ -214,7 +222,7 @@ final class LocalEmotes {
         rules = received;
     }
 
-    // plays the intro of a partner emote and asks the server to find a partner
+    // plays the partner emote intro and asks the server to find a partner
     private static void startPartner(Minecraft minecraft, LocalPlayer player, Emote emote) {
         EmoteNetwork.PartnerSpec spec = emote.partner();
         if (!rules.partner()) {
@@ -223,7 +231,7 @@ final class LocalEmotes {
         }
 
         EmoteNetwork.Options options = new EmoteNetwork.Options(emote.look(), emote.splitLimbs(), emote.blendInTicks(), emote.blendOutTicks(),
-                PlayerEmotesClient.config().playEmoteSounds ? emote.sound() : null, emote.prop());
+                PlayerEmotesClient.config().playEmoteSounds ? emote.sound() : null, emote.prop(), emote.props());
         EmotePlayers.start(player.getUUID(), emote.id(), spec.intro(), options.withoutSound(), 0);
         partnership = 0;
         started(minecraft);
@@ -240,7 +248,7 @@ final class LocalEmotes {
         switchCamera(minecraft);
     }
 
-    // refuses emotes the server would refuse for coming too soon after the previous one
+    // refuses emotes the server would refuse for coming too soon
     private static boolean checkCooldown() {
         if (EmotePlayers.time(0) - lastStart >= rules.cooldownTicks()) {
             return true;

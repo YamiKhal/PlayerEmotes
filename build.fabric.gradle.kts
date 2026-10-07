@@ -105,7 +105,7 @@ tasks {
         filesMatching("fabric.mod.json") { expand(props) }
 
         // Loom adds the refmap entry itself
-        val mixinProps = MixinConfig.properties(sc.current.version, requiredJava, refmap = false)
+        val mixinProps = MixinConfig.properties(sc.current.version, requiredJava, refmap = false, fabric = true)
         mixinProps.forEach { (k, v) -> inputs.property("mixin_$k", v) }
         filesMatching("*.mixins.json") { expand(mixinProps) }
 

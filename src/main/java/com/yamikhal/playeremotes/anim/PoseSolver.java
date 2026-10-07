@@ -1,25 +1,24 @@
 package com.yamikhal.playeremotes.anim;
 
-// turns an evaluated Pose into values for Minecraft's (flat) player model parts. vanilla model parts have no hierarchy,
-// so the skeleton hierarchy (arms and head follow the torso) is resolved here with matrices and baked back into each
-// part's position and ZYX Euler rotation. channels an animation does not define keep the vanilla value (walk swing,
-// held-item poses, head look). the lower limb halves only rotate, relative to their limb (see Bend). not thread
-// safe, one instance per render thread
+// turns a Pose into values for the flat vanilla player model parts. vanilla parts have no hierarchy, so the
+// skeleton (arms and head follow the torso) is solved here with matrices and baked into each part's position and
+// ZYX rotation. channels the animation lacks keep the vanilla value (walk swing, held item poses, head look),
+// lower halves only rotate relative to their limb (see Bend). not thread safe, one per render thread
 public final class PoseSolver {
 
-    // pivot of the whole-body rotation in entity space (blocks above the feet)
+    // whole body rotation pivot in entity space (blocks above the feet)
     public static final double BODY_PIVOT_Y = (24 - Part.BODY.pivotY) / 16.0;
 
-    // x, y, z, xRot, yRot, zRot per part (Part#ordinal), vanilla values in, solved values out. lower limb halves
-    // only get their rotation, already weighted
+    // x, y, z, xRot, yRot, zRot per part (Part#ordinal), vanilla in, solved out. lower halves only get their
+    // rotation, already weighted
     public final float[][] parts = new float[Part.VALUES.length][6];
-    // whether the animation bends a limb, per lower limb half (Part#ordinal)
+    // whether the animation bends a limb, per lower half (Part#ordinal)
     public final boolean[] bent = new boolean[Part.VALUES.length];
-    // whole-body transform for the pose stack: translation in blocks and rotation in radians
+    // whole body transform for the pose stack, translation in blocks, rotation in radians
     public final double[] bodyTranslation = new double[3];
     public final double[] bodyRotation = new double[3];
 
-    // affine matrices: 3x3 rotation (row major) followed by translation
+    // affine matrices: 3x3 rotation (row major) then translation
     private final double[][] modelMatrix = new double[Part.VALUES.length][12];
     private final double[][] vanillaMatrix = new double[Part.VALUES.length][12];
     private final double[] local = new double[12];
@@ -27,8 +26,7 @@ public final class PoseSolver {
     private final double[] delta = new double[12];
     private final double[] euler = new double[3];
 
-    // look keeps the vanilla head rotation (the player keeps looking around), weight blends between vanilla (0)
-    // and the animation (1)
+    // look keeps the vanilla head rotation (player keeps looking around), weight blends vanilla (0) to animation (1)
     public void solve(Pose pose, boolean look, float weight) {
         for (int axis = 0; axis < 3; axis++) {
             this.bodyTranslation[axis] = pose.position(Part.BODY, axis) * weight;
@@ -40,8 +38,8 @@ public final class PoseSolver {
             boolean animRot = pose.hasRotation(part) && !(look && part == Part.HEAD);
             boolean animPos = pose.hasPosition(part);
 
-            // transform relative to a resting parent: rotate around the Blockbench pivot for animated rotations,
-            // around the model part origin for vanilla ones
+            // transform relative to a resting parent: animated rotations turn around the Blockbench pivot, vanilla ones
+            // around the model part origin
             double ex = animRot ? part.pivotX : part.originX;
             double ey = animRot ? part.pivotY : part.originY;
             double ez = animRot ? part.pivotZ : part.originZ;
@@ -73,8 +71,8 @@ public final class PoseSolver {
             if (parent == Part.BODY) {
                 System.arraycopy(this.local, 0, result, 0, 12);
             } else {
-                // children follow how far the emote moved their parent away from its vanilla pose, so vanilla-only
-                // torso motion (attacking, crouching) does not drag the arms along
+                // children follow how far the emote moved their parent from its vanilla pose, so vanilla only torso motion
+                // (attacking, crouching) does not drag the arms
                 invertRigid(this.vanillaMatrix[parent.ordinal()], this.tmp);
                 multiply(this.modelMatrix[parent.ordinal()], this.tmp, this.delta);
                 multiply(this.delta, this.local, result);
@@ -95,7 +93,7 @@ public final class PoseSolver {
             values[5] = lerpAngle(weight, values[5], this.euler[2]);
         }
 
-        // a bend blends in from a straight limb, vanilla never bends one
+        // bend blends in from a straight limb, vanilla never bends one
         for (Part part : Part.LOWER_LIMBS) {
             float[] values = this.parts[part.ordinal()];
             boolean bent = pose.hasRotation(part);
@@ -106,7 +104,7 @@ public final class PoseSolver {
         }
     }
 
-    // rotation matrix equal to Rz(z) * Ry(y) * Rx(x), which is how model parts apply their rotation
+    // rotation matrix Rz(z) * Ry(y) * Rx(x), same order model parts use
     private static void rotation(double x, double y, double z, double[] m) {
         double sa = Math.sin(x);
         double ca = Math.cos(x);

@@ -13,7 +13,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-// the elytra follows the torso while emoting (see EmoteRenderer#followTorso)
+// elytra follows the torso while emoting (see EmoteRenderer#followTorso)
 @Mixin(ElytraLayer.class)
 public abstract class ElytraLayerMixin {
 

@@ -26,26 +26,31 @@ import java.util.stream.Stream;
 import java.util.zip.DataFormatException;
 import java.util.zip.Inflater;
 
-// downloads the emote packs a server sends (see ServerPacks) into a cache shared by all servers and keyed by content
-// hash, so files are only ever downloaded once, client thread only
+// downloads server emote packs (see ServerPacks) into a cache shared by all servers, keyed by content hash, so
+// each file only downloads once, client thread only
 public final class ServerPackClient {
 
-    // cache size kept on disk, the least recently used files go first
+    // cache size on disk, least recently used files go first
     private static final long MAX_CACHE_BYTES = 64L * 1024 * 1024;
     private static final Pattern VALID_PATH = Pattern.compile("[a-z0-9_.-]+(/[a-z0-9_.-]+)+\\.json");
-    // downloads in progress: file index to the chunks received so far
+    // downloads in progress: file index to chunks received so far
     private static final Map<Integer, byte[][]> PENDING = new HashMap<>();
 
     private static int generation = -1;
     private static List<EmoteNetwork.PackEntry> entries = List.of();
     private static int missing;
-    // the server's files currently merged into the emote registry, by path
+    // server files merged into the emote registry right now, by path
     private static Map<String, byte[]> active = Map.of();
+    // manifest these came from, to record it again (see FlashbackCompat)
+    @Nullable
+    private static EmoteNetwork.PackManifest manifest;
 
     private ServerPackClient() {}
 
-    // a new manifest: use cached files and ask for the rest
-    public static void onManifest(EmoteNetwork.PackManifest manifest, Consumer<byte[]> send) {
+    // new manifest: use cached files, ask for the rest. a replay cannot ask, it uses the cache and whatever
+    // downloads the recording holds
+    public static void onManifest(EmoteNetwork.PackManifest manifest, Consumer<byte[]> send, boolean canRequest) {
+        ServerPackClient.manifest = manifest;
         generation = manifest.generation();
         PENDING.clear();
         List<EmoteNetwork.PackEntry> valid = new ArrayList<>();
@@ -72,9 +77,11 @@ public final class ServerPackClient {
         }
 
         missing = wanted.size();
-        if (missing == 0) {
+        if (missing == 0 || !canRequest) {
             apply();
-        } else {
+        }
+
+        if (missing > 0 && canRequest) {
             PlayerEmotes.LOGGER.info("Downloading {} of {} server emote files", missing, entries.size());
             send.accept(EmoteNetwork.packsRequest(generation, wanted.stream().mapToInt(Integer::intValue).toArray()));
         }
@@ -86,7 +93,7 @@ public final class ServerPackClient {
         }
 
         EmoteNetwork.PackEntry entry = entries.get(chunk.index());
-        // compressed data can only be a little larger than the file itself
+        // compressed data is only a little larger than the file itself
         int maxChunks = entry == null ? 0 : entry.size() / EmoteNetwork.PACK_CHUNK_SIZE + 2;
         if (entry == null || chunk.chunks() <= 0 || chunk.chunks() > maxChunks || chunk.chunk() < 0 || chunk.chunk() >= chunk.chunks()) {
             return;
@@ -118,9 +125,16 @@ public final class ServerPackClient {
         }
     }
 
-    // leaving the server: its emotes go away
+    // server's current manifest, null if it sent none
+    @Nullable
+    public static EmoteNetwork.PackManifest manifest() {
+        return manifest;
+    }
+
+    // leaving the server, its emotes go away
     public static void clear() {
         boolean had = !active.isEmpty();
+        manifest = null;
         generation = -1;
         entries = List.of();
         PENDING.clear();
@@ -131,7 +145,7 @@ public final class ServerPackClient {
         }
     }
 
-    // the server's files by <namespace>/<path>, for EmoteRegistry
+    // server files by <namespace>/<path>, for EmoteRegistry
     static Map<String, byte[]> files() {
         return active;
     }
@@ -168,7 +182,7 @@ public final class ServerPackClient {
             inflater.setInput(compressed.toByteArray());
             byte[] out = new byte[size];
             int read = 0;
-            // never inflates past the announced size, so a hostile stream cannot blow up memory
+            // never inflates past the announced size, a hostile stream cannot blow up memory
             while (read < size && !inflater.finished()) {
                 int n = inflater.inflate(out, read, size - read);
                 if (n == 0 && (inflater.needsInput() || inflater.needsDictionary())) break;
@@ -209,7 +223,7 @@ public final class ServerPackClient {
                 return null;
             }
 
-            // marks it as recently used for the cache trimming
+            // marks it recently used for cache trimming
             Files.setLastModifiedTime(file, FileTime.fromMillis(System.currentTimeMillis()));
             return data;
         } catch (IOException e) {

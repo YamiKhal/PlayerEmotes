@@ -2,6 +2,7 @@ package com.yamikhal.playeremotes;
 
 import com.yamikhal.playeremotes.platform.Platform;
 import net.minecraft.resources.ResourceLocation;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -14,7 +15,7 @@ public final class PlayerEmotes {
 
     private PlayerEmotes() {}
 
-    // called by each loader entrypoint on both sides
+    // called by every loader entrypoint, both sides
     public static void init(Platform platform) {
         PlayerEmotes.platform = platform;
     }
@@ -34,8 +35,9 @@ public final class PlayerEmotes {
         return ResourceLocation.fromNamespaceAndPath(namespace, path);
     }
 
-    // parses namespace:path, a missing namespace defaults to this mod
+    // parses namespace:path, no namespace means this mod, null if invalid
+    @Nullable
     public static ResourceLocation parseId(String value) {
-        return value.indexOf(':') < 0 ? id(value) : ResourceLocation.tryParse(value);
+        return value.indexOf(':') < 0 ? ResourceLocation.tryBuild(MOD_ID, value) : ResourceLocation.tryParse(value);
     }
 }

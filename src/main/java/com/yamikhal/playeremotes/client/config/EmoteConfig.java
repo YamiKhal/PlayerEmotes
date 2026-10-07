@@ -24,7 +24,7 @@ import java.util.Locale;
 import java.util.Set;
 import java.util.TreeSet;
 
-// client settings stored in config/playeremotes.json
+// client settings in config/playeremotes.json
 public final class EmoteConfig {
 
     public static final int PAGES = 10;
@@ -40,24 +40,24 @@ public final class EmoteConfig {
     public boolean playEmoteSounds = true;
     public boolean hearOtherSounds = true;
     public boolean showOtherEmotes = true;
-    // switches to third person while emoting from first person
+    // third person while emoting from first person
     public boolean thirdPersonEmotes = true;
     // how emotes bend elbows and knees (see Bend)
     public LimbBends limbBends = LimbBends.EMOTE;
-    // the wheel shows while its key is held and plays the hovered emote on release
+    // wheel shows while its key is held, plays the hovered emote on release
     public boolean holdToOpenWheel = false;
-    // other players may ask to do partner emotes with us
+    // other players may ask us for partner emotes
     public boolean acceptRequests = true;
     // recently played emotes, newest first
     public final List<ResourceLocation> recent = new ArrayList<>();
-    // whether the "Recently Used" section of the emote lists is unfolded (folded by default)
+    // whether "Recently Used" in the emote lists is unfolded (folded by default)
     public boolean recentExpanded = false;
     // emote packs hidden from the emote lists
     public final Set<String> disabledPacks = new TreeSet<>();
     // emote pack sections folded in the emote lists
     public final Set<String> collapsedPacks = new TreeSet<>();
 
-    // changes waiting for saveSoon's deferred save, and ticks since the first of them
+    // changes waiting for saveSoon's save, and ticks since the first one
     private boolean dirty;
     private int dirtyTicks;
 
@@ -83,12 +83,12 @@ public final class EmoteConfig {
         }
     }
 
-    // saves within a few seconds, so frequent small changes (recently used emotes) cost one write
+    // saves within a few seconds, so many small changes (recently used) cost one write
     public void saveSoon() {
         this.dirty = true;
     }
 
-    // call every client tick, also saves pending changes when now is set
+    // call every client tick, now saves pending changes right away
     public void tickSave(boolean now) {
         if (!this.dirty) {
             return;
@@ -140,6 +140,12 @@ public final class EmoteConfig {
             }
         } catch (IOException | RuntimeException e) {
             PlayerEmotes.LOGGER.error("Failed to read {}, using defaults", this.file, e);
+            // next save overwrites it, keep a copy so a broken hand edit does not lose the wheel
+            try {
+                Files.copy(this.file, this.file.resolveSibling(this.file.getFileName() + ".broken"), StandardCopyOption.REPLACE_EXISTING);
+            } catch (IOException copyFailed) {
+                PlayerEmotes.LOGGER.warn("Could not back up {}", this.file, copyFailed);
+            }
         }
     }
 
@@ -178,7 +184,7 @@ public final class EmoteConfig {
         json.add("quickWheel", pages);
         try {
             Files.createDirectories(this.file.getParent());
-            // write next to it and swap, so a crash while saving cannot leave a broken file behind
+            // write next to it and swap, a crash while saving cannot leave a broken file
             Path temp = this.file.resolveSibling(this.file.getFileName() + ".tmp");
             try (Writer writer = Files.newBufferedWriter(temp)) {
                 GSON.toJson(json, writer);
@@ -215,8 +221,8 @@ public final class EmoteConfig {
         return array;
     }
 
-    // how bent elbows and knees are drawn: the way the emote asks for, always one smoothly bent limb, always two rigid
-    // halves, or never bent
+    // how bent elbows and knees are drawn: like the emote asks, always one smooth limb, always two rigid halves, or
+    // never bent
     public enum LimbBends {
         EMOTE,
         SMOOTH,

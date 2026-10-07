@@ -15,7 +15,7 @@ import net.minecraft.client.renderer.SubmitNodeCollector;
 //?} else
 /^import net.minecraft.client.renderer.MultiBufferSource;^/
 
-// the elytra follows the torso while emoting (see EmoteRenderer#followTorso)
+// elytra follows the torso while emoting (see EmoteRenderer#followTorso)
 @Mixin(WingsLayer.class)
 public abstract class WingsLayerMixin {
 

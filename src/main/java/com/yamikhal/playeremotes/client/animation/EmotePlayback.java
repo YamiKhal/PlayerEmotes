@@ -1,12 +1,16 @@
 package com.yamikhal.playeremotes.client.animation;
 
 import com.yamikhal.playeremotes.anim.EmoteAnimation;
+import com.yamikhal.playeremotes.network.AnimatedProp;
 import com.yamikhal.playeremotes.network.EmoteNetwork;
+import com.yamikhal.playeremotes.network.EmoteProp;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 import org.jetbrains.annotations.Nullable;
 
-// one running emote of one player, times are in client ticks (see EmotePlayers#time)
+import java.util.List;
+
+// one running emote of one player, times in client ticks (see EmotePlayers#time)
 public final class EmotePlayback {
 
     @Nullable
@@ -20,11 +24,16 @@ public final class EmotePlayback {
     // set for the two players of a partner emote
     @Nullable
     private PartnerLink link;
-    // seconds into the emote up to which its effect keyframes were played, NaN before the first tick
+    // message that started the partner emote, to record it again (see FlashbackCompat)
+    @Nullable
+    private EmoteNetwork.PartnerPlay partnerPlay;
+    // seconds into the emote its effect keyframes were played up to, NaN before the first tick
     double effectTime = Double.NaN;
-    // created on first use (see EmoteProps)
+    // made on first use (see EmoteProps)
     @Nullable
     ItemStack propStack;
+    @Nullable
+    ItemStack[] propStacks;
 
     EmotePlayback(@Nullable ResourceLocation emoteId, ResourceLocation animationId, EmoteNetwork.Options options,
                   float startTime, int receivedAt) {
@@ -40,8 +49,14 @@ public final class EmotePlayback {
         return this.link;
     }
 
-    void setLink(@Nullable PartnerLink link) {
+    void setLink(PartnerLink link, EmoteNetwork.PartnerPlay play) {
         this.link = link;
+        this.partnerPlay = play;
+    }
+
+    @Nullable
+    public EmoteNetwork.PartnerPlay partnerPlay() {
+        return this.partnerPlay;
     }
 
     // null if unknown (other players' emotes)
@@ -70,19 +85,19 @@ public final class EmotePlayback {
         return !Float.isNaN(this.stopTime);
     }
 
-    // starts blending out, the emote is removed once the blend finished
+    // starts blending out, removed once the blend is done
     void stop(float now) {
         if (!this.isStopping()) {
             this.stopTime = now;
         }
     }
 
-    // whether the playback finished blending out and can be discarded
+    // whether blending out is done and the playback can go
     boolean isDone(float now) {
         return this.isStopping() && now - this.stopTime >= this.options.blendOutTicks();
     }
 
-    // stops animations that play once when they reach their end
+    // stops play once animations at their end
     void update(float now) {
         EmoteAnimation animation = AnimationRegistry.get(this.animationId);
         if (animation == null) {
@@ -92,7 +107,8 @@ public final class EmotePlayback {
         }
     }
 
-    // null if nothing should be shown
+    // null if nothing to show
+    @Nullable
     public Frame frame(float now) {
         EmoteAnimation animation = AnimationRegistry.get(this.animationId);
         if (animation == null) {
@@ -104,7 +120,7 @@ public final class EmotePlayback {
         if (this.isStopping()) {
             float out = this.options.blendOutTicks() > 0 ? 1 - (now - this.stopTime) / this.options.blendOutTicks() : 0;
             weight = Math.min(weight, smooth(out));
-            // freeze on the frame where the emote was stopped while blending out
+            // freeze on the frame the emote stopped at while blending out
             elapsed = Math.min(elapsed, this.stopTime - this.startTime);
         }
 
@@ -112,7 +128,8 @@ public final class EmotePlayback {
             return null;
         }
 
-        return new Frame(animation, elapsed / 20.0, weight, this.options.look(), this.options.splitLimbs(), this.link);
+        return new Frame(animation, elapsed / 20.0, weight, this.options.look(), this.options.splitLimbs(), this.link,
+                this.options.prop(), this.options.props());
     }
 
     private static float smooth(float t) {
@@ -127,12 +144,13 @@ public final class EmotePlayback {
         return t * t * (3 - 2 * t);
     }
 
-    // everything needed to pose a player for one frame, link is where a partner emote draws the player
+    // everything to pose a player for one frame, link is where a partner emote draws the player, prop and props the
+    // emote's items (previews draw them from here, players through EmoteProps)
     public record Frame(EmoteAnimation animation, double seconds, float weight, boolean look, boolean splitLimbs,
-                        @Nullable PartnerLink link) {
+                        @Nullable PartnerLink link, @Nullable EmoteProp prop, List<AnimatedProp> props) {
 
         public Frame(EmoteAnimation animation, double seconds, float weight, boolean look, boolean splitLimbs) {
-            this(animation, seconds, weight, look, splitLimbs, null);
+            this(animation, seconds, weight, look, splitLimbs, null, null, List.of());
         }
     }
 }

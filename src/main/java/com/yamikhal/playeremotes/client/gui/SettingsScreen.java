@@ -13,7 +13,7 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
-// client settings, laid out like PackScreen: a list of check box rows, each explained by a tooltip
+// client settings, laid out like PackScreen: check box rows, each explained by a tooltip
 public class SettingsScreen extends EmoteScreen {
 
     private static final int ROW_HEIGHT = 22;
@@ -79,7 +79,7 @@ public class SettingsScreen extends EmoteScreen {
                 canvas.fill(this.x + 1, top + 1, this.x + this.listWidth - 1, top + ROW_HEIGHT - 1, 0x80424242);
             }
 
-            // a choice shows its value where a check box would be
+            // choice shows its value where a check box would be
             String choice = setting.choice != null ? setting.choice.apply(config).getString() : null;
             int valueWidth = choice != null ? this.font.width(choice) : BOX_SIZE;
             String name = this.font.substrByWidth(Component.translatable(setting.key), this.listWidth - valueWidth - 18).getString();
@@ -122,6 +122,7 @@ public class SettingsScreen extends EmoteScreen {
 
     @Override
     public void removed() {
+        super.removed();
         if (this.changed) {
             PlayerEmotesClient.config().save();
         }

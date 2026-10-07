@@ -4,16 +4,19 @@ package com.yamikhal.playeremotes.neoforge;
 /*import com.yamikhal.playeremotes.PlayerEmotes;
 import com.yamikhal.playeremotes.client.EmoteCommands;
 import com.yamikhal.playeremotes.client.PlayerEmotesClient;
-import net.neoforged.neoforge.client.event.RegisterClientCommandsEvent;
 import com.yamikhal.playeremotes.network.EmotePayload;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientPacketListener;
 import net.minecraft.server.packs.resources.ResourceManagerReloadListener;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.neoforge.client.event.ClientTickEvent;
+import net.neoforged.neoforge.client.event.RegisterClientCommandsEvent;
 import net.neoforged.neoforge.client.event.RegisterKeyMappingsEvent;
 import net.neoforged.neoforge.common.NeoForge;
-//? if <1.21.6
+
+//? if >=1.21.6 {
+import net.neoforged.neoforge.client.network.ClientPacketDistributor;
+//?} else
 /^import net.neoforged.neoforge.network.PacketDistributor;^/
 //? if >=1.21.4 {
 import net.neoforged.neoforge.client.event.AddClientReloadListenersEvent;
@@ -35,7 +38,7 @@ final class PlayerEmotesNeoForgeClient {
             @Override
             public void send(byte[] message) {
                 //? if >=1.21.6 {
-                net.neoforged.neoforge.client.network.ClientPacketDistributor.sendToServer(new EmotePayload(EmotePayload.C2S, message));
+                ClientPacketDistributor.sendToServer(new EmotePayload(EmotePayload.C2S, message));
                 //?} else
                 /^PacketDistributor.sendToServer(new EmotePayload(EmotePayload.C2S, message));^/
             }

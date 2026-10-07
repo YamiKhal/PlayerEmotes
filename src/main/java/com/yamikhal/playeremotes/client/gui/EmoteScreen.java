@@ -1,27 +1,34 @@
 package com.yamikhal.playeremotes.client.gui;
 
-//? if >=26.1 {
-/*import net.minecraft.client.gui.GuiGraphicsExtractor;
-*///?} else
-import net.minecraft.client.gui.GuiGraphics;
 import com.yamikhal.playeremotes.client.preview.EmotePreview;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import org.jetbrains.annotations.Nullable;
 
-// base for all emote screens. normalizes the input and render callbacks that changed signature between Minecraft
-// versions into on* hooks, and draws a plain dimmed backdrop instead of the vanilla (blurred) background
+//? if >=26.1 {
+/*import net.minecraft.client.gui.GuiGraphicsExtractor;
+*///?} else
+import net.minecraft.client.gui.GuiGraphics;
+//? if >=1.21.9 {
+/*import com.mojang.blaze3d.platform.InputConstants;
+import com.yamikhal.playeremotes.client.preview.PreviewPictures;
+import net.minecraft.client.input.KeyEvent;
+import net.minecraft.client.input.MouseButtonEvent;
+*///?}
+
+// base for all emote screens. turns the input and render callbacks that changed signature between versions into
+// on* hooks, draws a plain dimmed backdrop instead of the vanilla (blurred) background
 public abstract class EmoteScreen extends Screen {
 
     @Nullable
     protected final Screen parent;
-    // the input event being handled, for matching key mappings (their API changed in 1.21.9)
+    // input event being handled, for matching key mappings (API changed in 1.21.9)
     //? if >=1.21.9 {
     /*@Nullable
-    private net.minecraft.client.input.KeyEvent keyEvent;
+    private KeyEvent keyEvent;
     @Nullable
-    private net.minecraft.client.input.MouseButtonEvent mouseEvent;
+    private MouseButtonEvent mouseEvent;
     *///?} else {
     private int keyCode = -1;
     private int scanCode = -1;
@@ -39,7 +46,7 @@ public abstract class EmoteScreen extends Screen {
         EmotePreview.reset();
     }
 
-    // draws custom widgets, vanilla widgets (buttons, edit boxes) are drawn afterwards
+    // draws custom widgets, vanilla widgets (buttons, edit boxes) come after
     protected abstract void renderContent(Canvas canvas, int mouseX, int mouseY, float partialTick);
 
     // draws on top of everything else, e.g. tooltips
@@ -67,7 +74,7 @@ public abstract class EmoteScreen extends Screen {
         return false;
     }
 
-    // whether the key being pressed or released belongs to the key mapping
+    // whether the key pressed or released belongs to the key mapping
     protected boolean isKey(KeyMapping key) {
         //? if >=1.21.9 {
         /*return this.keyEvent != null && key.matches(this.keyEvent);
@@ -75,7 +82,7 @@ public abstract class EmoteScreen extends Screen {
         return this.keyCode >= 0 && key.matches(this.keyCode, this.scanCode);
     }
 
-    // whether the mouse button being pressed or released belongs to the key mapping
+    // whether the mouse button pressed or released belongs to the key mapping
     protected boolean isMouseButton(KeyMapping key) {
         //? if >=1.21.9 {
         /*return this.mouseEvent != null && key.matchesMouse(this.mouseEvent);
@@ -115,7 +122,7 @@ public abstract class EmoteScreen extends Screen {
 
     //? if >=1.21.9 {
     /*@Override
-    public boolean mouseClicked(net.minecraft.client.input.MouseButtonEvent event, boolean doubleClick) {
+    public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
         if (super.mouseClicked(event, doubleClick)) {
             return true;
         }
@@ -129,7 +136,7 @@ public abstract class EmoteScreen extends Screen {
     }
 
     @Override
-    public boolean mouseReleased(net.minecraft.client.input.MouseButtonEvent event) {
+    public boolean mouseReleased(MouseButtonEvent event) {
         this.mouseEvent = event;
         try {
             if (this.onMouseRelease(event.x(), event.y(), normalizeButton(event.button()))) {
@@ -185,7 +192,7 @@ public abstract class EmoteScreen extends Screen {
 
     //? if >=1.21.9 {
     /*@Override
-    public boolean keyPressed(net.minecraft.client.input.KeyEvent event) {
+    public boolean keyPressed(KeyEvent event) {
         if (super.keyPressed(event)) {
             return true;
         }
@@ -202,13 +209,16 @@ public abstract class EmoteScreen extends Screen {
     }
 
     @Override
-    public boolean keyReleased(net.minecraft.client.input.KeyEvent event) {
+    public boolean keyReleased(KeyEvent event) {
         this.keyEvent = event;
         try {
             //? if >=26.3 {
-            /^if (this.onKeyRelease(event.key(), event.keycode())) return true;
+            /^boolean handled = this.onKeyRelease(event.key(), event.keycode());
             ^///?} else
-            if (this.onKeyRelease(event.key(), event.scancode())) return true;
+            boolean handled = this.onKeyRelease(event.key(), event.scancode());
+            if (handled) {
+                return true;
+            }
         } finally {
             this.keyEvent = null;
         }
@@ -259,24 +269,24 @@ public abstract class EmoteScreen extends Screen {
 
     private void draw(Canvas canvas, int mouseX, int mouseY, float partialTick) {
         //? if >=1.21.9
-        /*com.yamikhal.playeremotes.client.preview.PreviewPictures.beginFrame();*/
+        /*PreviewPictures.beginFrame();*/
         Canvas.resetScissors();
         canvas.gradient(0, 0, this.width, this.height, 0xB0101010, 0xC8101010);
         this.renderContent(canvas, mouseX, mouseY, partialTick);
     }
 
     //? if >=1.21.9 {
-    /*// maps the platform mouse button to 0 = left, 1 = right, 2 = middle
+    /*// platform mouse button to 0 = left, 1 = right, 2 = middle
     private static int normalizeButton(int button) {
-        if (button == com.mojang.blaze3d.platform.InputConstants.MOUSE_BUTTON_LEFT) {
+        if (button == InputConstants.MOUSE_BUTTON_LEFT) {
             return 0;
         }
 
-        if (button == com.mojang.blaze3d.platform.InputConstants.MOUSE_BUTTON_RIGHT) {
+        if (button == InputConstants.MOUSE_BUTTON_RIGHT) {
             return 1;
         }
 
-        if (button == com.mojang.blaze3d.platform.InputConstants.MOUSE_BUTTON_MIDDLE) {
+        if (button == InputConstants.MOUSE_BUTTON_MIDDLE) {
             return 2;
         }
 

@@ -5,7 +5,7 @@ import net.minecraft.server.level.ServerPlayer;
 
 import java.nio.file.Path;
 
-// the few things that differ between mod loaders, implemented once per loader
+// the few things that differ per mod loader, one implementation per loader
 public interface Platform {
 
     boolean isModLoaded(String modId);
@@ -15,6 +15,6 @@ public interface Platform {
     // sends an encoded EmoteNetwork message to a player
     void sendToPlayer(ServerPlayer player, byte[] message);
 
-    // checks a permission through the loader's permission API, falling back to the node's operator level
+    // checks a permission through the loader's permission API, falls back to the node's operator level
     boolean hasPermission(ServerPlayer player, EmotePermissions.Node node);
 }

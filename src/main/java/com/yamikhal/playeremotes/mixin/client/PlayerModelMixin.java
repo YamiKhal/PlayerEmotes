@@ -26,10 +26,10 @@ import net.minecraft.client.player.AbstractClientPlayer;
 import net.minecraft.world.entity.LivingEntity;
 //?}
 
-// poses players once PlayerModel finished its own setup, where other mods change the player pose too. the priority
-// applies emotes last: after Not Enough Animations (default 1000), whose smoothing and arm poses would drag them,
-// and after PlayerAnimator / Player Animation Library (2000, 2001), which movement overhauls use for animations
-// that are always active. the emote blends from whatever pose they made
+// poses players once PlayerModel finished its own setup, where other mods change the pose too. priority applies
+// emotes last: after Not Enough Animations (default 1000), whose smoothing and arm poses would drag them, and
+// after PlayerAnimator / Player Animation Library (2000, 2001), which movement overhauls use for always active
+// animations. emote blends from whatever pose they made
 @Mixin(value = PlayerModel.class, priority = 3000)
 public abstract class PlayerModelMixin {
 
@@ -50,7 +50,7 @@ public abstract class PlayerModelMixin {
         }
     }
     *///?} else {
-    // the outer skin layers already copied the vanilla pose, so they copy the emote again
+    // outer skin layers already copied the vanilla pose, copy the emote again
     @Inject(method = "setupAnim(Lnet/minecraft/world/entity/LivingEntity;FFFFF)V", at = @At("RETURN"))
     private void playeremotes$applyEmote(LivingEntity entity, float limbSwing, float limbSwingAmount, float ageInTicks,
                                          float netHeadYaw, float headPitch, CallbackInfo ci) {

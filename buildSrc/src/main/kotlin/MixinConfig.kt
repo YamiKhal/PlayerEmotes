@@ -5,7 +5,7 @@ import org.gradle.api.JavaVersion
  * Minecraft versions are added here instead of commenting them out in JSON.
  */
 object MixinConfig {
-    fun properties(mc: String, java: JavaVersion, refmap: Boolean): Map<String, String> {
+    fun properties(mc: String, java: JavaVersion, refmap: Boolean, fabric: Boolean = false): Map<String, String> {
         val client = buildList {
             add("HumanoidModelMixin")
             add("ModelPartMixin")
@@ -13,9 +13,13 @@ object MixinConfig {
             add("PlayerRendererMixin")
             // Cape and elytra bend with the torso (from 1.21.2 on the cape does that by itself); emote props
             if (atLeast(mc, "1.21.2")) addAll(listOf("PlayerRenderStateMixin", "WingsLayerMixin", "ArmedEntityRenderStateMixin"))
-            else addAll(listOf("CapeLayerMixin", "ElytraLayerMixin", "ItemInHandLayerMixin"))
+            else addAll(listOf("CapeLayerMixin", "ElytraLayerMixin"))
+            // Animated emote props drawn after the hands
+            add("ItemInHandLayerMixin")
             // Emote previews through the deferred GUI renderer
-            if (atLeast(mc, "1.21.9")) addAll(listOf("GameRendererMixin", "GuiGraphicsAccessor"))
+            if (atLeast(mc, "1.21.9")) addAll(listOf("GameRendererMixin", "GuiGraphicsAccessor", "LightingInvoker"))
+            // Emotes in Flashback recording snapshots (Flashback is Fabric only, the target is optional)
+            if (fabric && atLeast(mc, "1.20.5")) add("FlashbackRecorderMixin")
         }
         return mapOf(
             "java" to "JAVA_${java.majorVersion}",

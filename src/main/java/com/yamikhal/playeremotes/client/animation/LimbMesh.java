@@ -11,10 +11,10 @@ import org.joml.Vector3f;
 import java.util.ArrayList;
 import java.util.List;
 
-// one cube of a limb, cut at the joint and drawn bent (see Bend). baked once from what the cube itself draws, so UVs,
-// mirroring, inflation and left out faces stay vanilla's: faces crossing the joint are cut in two there, which adds
-// the joint ring. the joint is at the cube's center across, so a limb, its outer layer and its armor bend alike. for
-// split bends each half gets a cap at the joint, copies of the cube's end faces, drawn only then
+// one limb cube, cut at the joint and drawn bent (see Bend). baked once from what the cube draws, so UVs,
+// mirroring, inflation and left out faces stay vanilla's: faces crossing the joint get cut there, which adds the
+// joint ring. joint sits at the cube's center across, so limb, outer layer and armor bend alike. split bends get a
+// cap per half at the joint, copies of the cube's end faces, drawn only then
 public final class LimbMesh {
 
     private static final byte UPPER = 0;
@@ -60,8 +60,8 @@ public final class LimbMesh {
         }
     }
 
-    // meshes of a model part's cubes, cached are the ones made before. null if a cube is not vanilla's (another mod
-    // draws it its own way), such a part stays straight
+    // meshes of a model part's cubes, cached ones reused. null if a cube is not vanilla's (another mod draws it its
+    // own way), that part stays straight
     @Nullable
     public static LimbMesh[] of(List<ModelPart.Cube> cubes, @Nullable LimbMesh[] cached, float jointY) {
         if (cached != null && cached.length == cubes.size() && (cached.length == 0 || cached[0].jointY == jointY)) {
@@ -82,7 +82,7 @@ public final class LimbMesh {
         return meshes;
     }
 
-    // jointY is in the cube's model part space
+    // jointY in the cube's model part space
     private static LimbMesh bake(ModelPart.Cube cube, float jointY) {
         Recorder recorder = new Recorder();
         //? if >=1.21 {
@@ -167,9 +167,8 @@ public final class LimbMesh {
             cut = true;
         }
 
-        // the top end closes the lower half at the joint and the bottom end the upper half, both facing out. caps sit a
-        // little inside their half, wider cubes further in, so the caps of the skin, its outer layer and armor do not
-        // flicker against each other
+        // top end closes the lower half at the joint, bottom end the upper half, both facing out. caps sit a little
+        // inside their half, wider cubes further in, so caps of skin, outer layer and armor do not flicker
         int caps = quads.size();
         if (cut) {
             float inset = Math.max(maxX - minX, maxZ - minZ) * 0.025F;
@@ -253,7 +252,7 @@ public final class LimbMesh {
         return y < jointY - EPSILON ? UPPER : y > jointY + EPSILON ? LOWER : RING;
     }
 
-    // quads covering a convex outline of three to five vertices (a cut quad has four, a slanted one may not)
+    // quads covering a convex outline of three to five vertices (cut quad has four, slanted one may not)
     private static List<float[][]> fan(List<float[]> outline) {
         List<float[][]> quads = new ArrayList<>(2);
         if (outline.size() >= 3) {

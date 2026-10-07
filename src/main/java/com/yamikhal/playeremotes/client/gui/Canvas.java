@@ -3,7 +3,6 @@ package com.yamikhal.playeremotes.client.gui;
 import net.minecraft.client.gui.Font;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
-
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayDeque;
@@ -22,8 +21,8 @@ import net.minecraft.client.gui.GuiGraphics;
 *///?} else
 import com.mojang.blaze3d.systems.RenderSystem;
 
-// drawing surface for the emote screens. wraps Minecraft's GUI graphics object, which changed name and API several
-// times, so the rest of the GUI code stays version independent. all colors are ARGB
+// drawing surface for the emote screens. wraps the GUI graphics object, which changed name and API several
+// times, so the rest of the GUI stays version independent. all colors ARGB
 public final class Canvas {
 
     // active scissor areas as {x1, y1, x2, y2}, each already intersected with the one below
@@ -43,8 +42,8 @@ public final class Canvas {
     }
     //?}
 
-    // draws the region (u, v, regionWidth, regionHeight) of a texture of size (textureWidth, textureHeight) stretched
-    // to (x, y, width, height)
+    // draws region (u, v, regionWidth, regionHeight) of a texture sized (textureWidth, textureHeight) stretched to
+    // (x, y, width, height)
     public void texture(ResourceLocation texture, int x, int y, int width, int height,
                         float u, float v, int regionWidth, int regionHeight, int textureWidth, int textureHeight) {
         //? if >=1.21.6 {
@@ -90,7 +89,7 @@ public final class Canvas {
         this.text(font, text, centerX - font.width(text) / 2, y, color, true);
     }
 
-    // a square check box, filled green when checked
+    // square check box, filled green when checked
     public void checkbox(int x, int y, int size, boolean checked) {
         this.fill(x, y, x + size, y + size, 0xFFA0A0A0);
         this.fill(x + 1, y + 1, x + size - 1, y + size - 1, 0xFF202020);
@@ -99,7 +98,7 @@ public final class Canvas {
         }
     }
 
-    // a box with a 1px border and slightly rounded (cut) corners
+    // box with 1px border and slightly rounded (cut) corners
     public void frame(int x, int y, int width, int height, int background, int border) {
         int x2 = x + width;
         int y2 = y + height;
@@ -132,7 +131,7 @@ public final class Canvas {
         this.graphics.disableScissor();
     }
 
-    // draws a tooltip box next to the mouse, kept inside the screen, must be drawn after everything it should cover
+    // tooltip box next to the mouse, kept on screen, draw after everything it should cover
     public void tooltip(Font font, List<Line> lines, int mouseX, int mouseY, int screenWidth, int screenHeight) {
         if (lines.isEmpty()) {
             return;
@@ -147,7 +146,7 @@ public final class Canvas {
         int x = Math.max(4, Math.min(mouseX + 12, screenWidth - width - 8));
         int y = Math.max(4, Math.min(mouseY - 12, screenHeight - height - 8));
 
-        // before 1.21.6 text is batched and drawn after all fills, so lift the tooltip above it like vanilla does
+        // before 1.21.6 text is batched and drawn after all fills, lift the tooltip above it like vanilla
         //? if >=1.21.6 {
         /*this.graphics.nextStratum();
         *///?} else {
@@ -168,12 +167,12 @@ public final class Canvas {
         this.graphics.pose().popPose();
     }
 
-    // drops scissor areas an interrupted frame may have left behind, call when a frame starts
+    // drops scissor areas an interrupted frame left behind, call when a frame starts
     static void resetScissors() {
         SCISSORS.clear();
     }
 
-    // the active scissor area as {x1, y1, x2, y2}, or null
+    // active scissor area as {x1, y1, x2, y2}, or null
     @Nullable
     public static int[] currentScissor() {
         return SCISSORS.peek();

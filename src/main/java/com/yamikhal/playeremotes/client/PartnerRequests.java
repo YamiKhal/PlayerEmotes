@@ -15,7 +15,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
-// partner emote requests to the local player, newest first, until accepted, withdrawn or expired, client thread only
+// partner requests to the local player, newest first, until accepted, withdrawn or expired, client thread only
 final class PartnerRequests {
 
     private static final List<Entry> REQUESTS = new ArrayList<>();
@@ -24,7 +24,7 @@ final class PartnerRequests {
 
     static void received(EmoteNetwork.Request request) {
         remove(request.starter());
-        // names come from other players' clients, so show them as plain text
+        // names come from other players' clients, plain text only
         String starter = ChatFormatting.stripFormatting(request.starterName());
         Emote known = EmoteRegistry.get(request.emote());
         String emote = known != null ? known.name().getString() : ChatFormatting.stripFormatting(request.emoteName());
@@ -55,7 +55,7 @@ final class PartnerRequests {
         return REQUESTS.isEmpty() ? null : REQUESTS.get(0).request;
     }
 
-    // "X wants to emote with you: Hug [Accept]", the button runs /emoteaccept
+    // "X wants to emote with you: Hug [Accept]", button runs /emoteaccept
     private static void announce(PlayerEmotesClient.PendingRequest request) {
         MutableComponent accept = Component.translatable("playeremotes.partner.accept_button")
                 .withStyle(style -> style.withColor(ChatFormatting.GOLD).withClickEvent(acceptClick()));

@@ -4,15 +4,15 @@ import com.yamikhal.playeremotes.PlayerEmotes;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.server.level.ServerPlayer;
 
-// loaders check the nodes through their permission API (which LuckPerms and similar plugins hook into) and fall
-// back to the vanilla operator level
+// loaders check the nodes through their permission API (LuckPerms and similar hook into it) and fall back to the
+// vanilla operator level
 public final class EmotePermissions {
 
     public enum Node {
         USE("use", 0),
         // joining another player's emote with /emotesync
         SYNC("sync", 0),
-        // starting and joining two-player emotes
+        // starting and joining two player emotes
         PARTNER("partner", 0),
         // emotes listed as restricted in the server config
         RESTRICTED("restricted", 2),

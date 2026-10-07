@@ -9,20 +9,20 @@ import com.yamikhal.playeremotes.server.EmoteTracker;
 import com.yamikhal.playeremotes.server.FabricPermissions;
 import com.yamikhal.playeremotes.server.ServerCommands;
 import com.yamikhal.playeremotes.server.ServerPacks;
-import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
-import net.fabricmc.fabric.api.resource.ResourceManagerHelper;
-import net.fabricmc.fabric.api.resource.SimpleSynchronousResourceReloadListener;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.server.packs.PackType;
-import net.minecraft.server.packs.resources.ResourceManager;
-import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.api.ModInitializer;
+import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.entity.event.v1.ServerPlayerEvents;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.networking.v1.EntityTrackingEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
+import net.fabricmc.fabric.api.resource.ResourceManagerHelper;
+import net.fabricmc.fabric.api.resource.SimpleSynchronousResourceReloadListener;
 import net.fabricmc.loader.api.FabricLoader;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.server.packs.PackType;
+import net.minecraft.server.packs.resources.ResourceManager;
 
 import java.nio.file.Path;
 
@@ -72,7 +72,7 @@ public class PlayerEmotesFabric implements ModInitializer {
         });
         EntityTrackingEvents.START_TRACKING.register((entity, player) -> EmoteTracker.onStartTracking(player, entity));
         ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> EmoteTracker.onDisconnect(handler.player));
-        ServerPlayerEvents.AFTER_RESPAWN.register((oldPlayer, newPlayer, alive) -> EmoteTracker.onRespawnOrTeleport(newPlayer));
+        ServerPlayerEvents.AFTER_RESPAWN.register((oldPlayer, newPlayer, alive) -> EmoteTracker.onRespawn(newPlayer));
     }
 
     //? if <1.20.5 {

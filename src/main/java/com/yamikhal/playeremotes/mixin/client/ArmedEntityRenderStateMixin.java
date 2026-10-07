@@ -2,6 +2,8 @@ package com.yamikhal.playeremotes.mixin.client;
 
 //? if >=1.21.2 {
 /*import com.yamikhal.playeremotes.client.animation.EmoteProps;
+import com.yamikhal.playeremotes.client.animation.EmoteRenderState;
+import com.yamikhal.playeremotes.network.AnimatedProp;
 import net.minecraft.client.renderer.entity.state.ArmedEntityRenderState;
 import net.minecraft.client.renderer.item.ItemModelResolver;
 import net.minecraft.world.entity.HumanoidArm;
@@ -13,7 +15,9 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-// emote props in place of the held items (see EmoteProps)
+import java.util.List;
+
+// emote props instead of the held items, items of animated props (see EmoteProps)
 @Mixin(ArmedEntityRenderState.class)
 public abstract class ArmedEntityRenderStateMixin {
 
@@ -32,6 +36,15 @@ public abstract class ArmedEntityRenderStateMixin {
             resolver.updateForLiving(state.leftHandItemState, left, ItemDisplayContext.THIRD_PERSON_LEFT_HAND, entity);
             state.leftHandItemStack = left.copy();
         }
+
+        if (state instanceof EmoteRenderState emote) {
+            List<AnimatedProp> props = EmoteProps.props(entity);
+            emote.playeremotes$setProps(props);
+            for (int i = 0; i < props.size(); i++) {
+                resolver.updateForLiving(emote.playeremotes$propItem(i), EmoteProps.stack(entity, i),
+                        EmoteProps.context(props.get(i), entity), entity);
+            }
+        }
     }
     //?} else {
     /^@Inject(method = "extractArmedEntityRenderState", at = @At("TAIL"))
@@ -45,6 +58,16 @@ public abstract class ArmedEntityRenderStateMixin {
         ItemStack left = EmoteProps.propFor(entity, HumanoidArm.LEFT);
         if (left != null) {
             resolver.updateForLiving(state.leftHandItem, left, ItemDisplayContext.THIRD_PERSON_LEFT_HAND, true, entity);
+        }
+
+        if (state instanceof EmoteRenderState emote) {
+            List<AnimatedProp> props = EmoteProps.props(entity);
+            emote.playeremotes$setProps(props);
+            for (int i = 0; i < props.size(); i++) {
+                ItemDisplayContext context = EmoteProps.context(props.get(i), entity);
+                resolver.updateForLiving(emote.playeremotes$propItem(i), EmoteProps.stack(entity, i), context,
+                        context == ItemDisplayContext.THIRD_PERSON_LEFT_HAND, entity);
+            }
         }
     }
     ^///?}

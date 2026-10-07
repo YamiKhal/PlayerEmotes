@@ -4,7 +4,7 @@ import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
 import org.jetbrains.annotations.Nullable;
 
-// an item held during an emote (a cup for "drink", a flower for "give"), in place of what the hand holds
+// item held during an emote (cup for "drink", flower for "give") instead of what the hand holds
 public record EmoteProp(ResourceLocation item, Hand hand) {
 
     private static final int MAX_ID_LENGTH = 256;

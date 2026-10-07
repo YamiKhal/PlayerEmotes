@@ -11,7 +11,7 @@ import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.render.state.GuiRenderState;
 //?}
 
-// emote previews submit their own picture-in-picture elements, which needs the GUI render state
+// previews submit their own picture-in-picture elements, needs the GUI render state
 //? if >=26.1 {
 /^@Mixin(GuiGraphicsExtractor.class)
 ^///?} else

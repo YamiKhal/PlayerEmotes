@@ -5,10 +5,15 @@ import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.ThreadLocalRandom;
 
-// a small Molang expression compiler covering what is typically typed into Blockbench keyframes: numbers, arithmetic,
-// comparisons, logic, ternaries, math.* functions (trigonometry in degrees, like Bedrock) and query.* / variable.*
-// lookups resolved through Context. expressions are compiled once when the animation loads, evaluation allocates nothing
+// small Molang compiler for what usually goes into Blockbench keyframes: numbers, arithmetic, comparisons, logic,
+// ternaries, math.* (trigonometry in degrees like Bedrock) and query.* / variable.* lookups through Context.
+// compiled once on load, eval allocates nothing
 public final class Molang {
+
+    // emote files also come from servers, compile and eval recurse per nesting level and operator, so both capped
+    // well below a stack overflow
+    private static final int MAX_LENGTH = 1024;
+    private static final int MAX_DEPTH = 64;
 
     private Molang() {}
 
@@ -16,13 +21,17 @@ public final class Molang {
         return new Constant(value);
     }
 
-    // compiles an expression, constant sub-expressions are folded
+    // compiles an expression, constant parts get folded
     public static Expr compile(String source) {
+        if (source.length() > MAX_LENGTH) {
+            throw new MolangException("Expression longer than " + MAX_LENGTH + " characters");
+        }
+
         Parser parser = new Parser(source);
         return parser.parseStatements();
     }
 
-    // supplies values for query.*, variable.* and other named lookups
+    // values for query.*, variable.* and other lookups
     public interface Context {
 
         // seconds since the animation started, wrapped for loops (query.anim_time)
@@ -31,7 +40,7 @@ public final class Molang {
         // seconds since the emote started, never wrapped (query.life_time)
         double lifeTime();
 
-        // any other lookup, e.g. variable.foo, unknown names should return 0
+        // any other lookup like variable.foo, unknown names return 0
         default double lookup(String name) {
             return 0;
         }
@@ -71,13 +80,14 @@ public final class Molang {
 
         private final String src;
         private int pos;
+        private int depth;
 
         Parser(String src) {
             this.src = src;
         }
 
         Expr parseStatements() {
-            // accept "return x;" and trailing semicolons from simple one-liners
+            // accept "return x;" and trailing semicolons of simple one-liners
             this.skipWhitespace();
             if (this.matchWord("return")) {
                 this.skipWhitespace();
@@ -97,7 +107,9 @@ public final class Molang {
             return expr;
         }
 
+        // every nesting (parentheses, arguments, ternaries, unary) goes through here or parseUnary
         Expr parseExpr() {
+            this.enter();
             Expr condition = this.parseNullish();
             this.skipWhitespace();
             if (this.peek() == '?' && this.peekAt(1) != '?') {
@@ -105,16 +117,17 @@ public final class Molang {
                 Expr whenTrue = this.parseExpr();
                 this.expect(':');
                 Expr whenFalse = this.parseExpr();
-                return ternary(condition, whenTrue, whenFalse);
+                condition = ternary(condition, whenTrue, whenFalse);
             }
 
+            this.depth--;
             return condition;
         }
 
         Expr parseNullish() {
             Expr left = this.parseOr();
             while (this.match("??")) {
-                // values are never null here, so the left side always wins
+                // values are never null, left side always wins
                 this.parseOr();
             }
 
@@ -217,23 +230,24 @@ public final class Molang {
         }
 
         Expr parseUnary() {
+            this.enter();
+            Expr result;
             this.skipWhitespace();
             if (this.match("-")) {
                 Expr e = this.parseUnary();
-                return e.isConstant() ? constant(-e.eval(null)) : c -> -e.eval(c);
-            }
-
-            if (this.match("+")) {
-                return this.parseUnary();
-            }
-
-            if (this.peek() == '!' && this.peekAt(1) != '=') {
+                result = e.isConstant() ? constant(-e.eval(null)) : c -> -e.eval(c);
+            } else if (this.match("+")) {
+                result = this.parseUnary();
+            } else if (this.peek() == '!' && this.peekAt(1) != '=') {
                 this.pos++;
                 Expr e = this.parseUnary();
-                return e.isConstant() ? constant(e.eval(null) == 0 ? 1 : 0) : c -> e.eval(c) == 0 ? 1 : 0;
+                result = e.isConstant() ? constant(e.eval(null) == 0 ? 1 : 0) : c -> e.eval(c) == 0 ? 1 : 0;
+            } else {
+                result = this.parsePrimary();
             }
 
-            return this.parsePrimary();
+            this.depth--;
+            return result;
         }
 
         Expr parsePrimary() {
@@ -369,6 +383,12 @@ public final class Molang {
         private void arity(List<Expr> args, int count) {
             if (args.size() != count) {
                 throw this.error("Expected " + count + " argument(s), got " + args.size());
+            }
+        }
+
+        private void enter() {
+            if (++this.depth > MAX_DEPTH) {
+                throw this.error("Expression nested deeper than " + MAX_DEPTH + " levels");
             }
         }
 

@@ -19,9 +19,9 @@ import java.util.List;
 import java.util.Locale;
 import java.util.function.Consumer;
 
-// scrollable, searchable list of emotes with icon, name, description and author, grouped into one collapsible section
-// per enabled emote pack, below a "Recently Used" section (folded by default). hovering a pack header shows the pack's
-// info, each emote has a 3D preview that plays while the emote is selected
+// scrollable, searchable emote list with icon, name, description and author, one collapsible section per enabled
+// pack below "Recently Used" (folded by default). hovering a pack header shows the pack info, each emote has a
+// 3D preview that plays while selected
 public final class EmoteList {
 
     private static final int ROW_HEIGHT = 36;
@@ -30,7 +30,7 @@ public final class EmoteList {
     private static final int PREVIEW_WIDTH = 40;
     private static final int SCROLLBAR_WIDTH = 6;
     private static final int TOOLTIP_WIDTH = 200;
-    // id of the "Recently Used" section, which is not a real pack
+    // id of "Recently Used", not a real pack
     private static final String RECENT = "#recent";
 
     private final Consumer<Emote> onClick;
@@ -120,7 +120,7 @@ public final class EmoteList {
         this.renderScrollbar(canvas);
     }
 
-    // draws the pack info of a hovered section header, call after all widgets are drawn
+    // pack info of a hovered section header, call after all widgets are drawn
     public void renderTooltip(Canvas canvas, int mouseX, int mouseY, int screenWidth, int screenHeight) {
         Row row = this.rowAt(mouseX, mouseY);
         if (row == null || row.pack == null || row.pack.id().equals(RECENT)) {
@@ -210,7 +210,7 @@ public final class EmoteList {
 
             this.rows.add(new Row(pack, null, matches.size(), top, HEADER_HEIGHT));
             top += HEADER_HEIGHT;
-            // searching shows every match, even in collapsed sections
+            // searching shows every match, also in collapsed sections
             if (!this.query.isEmpty() || !config.collapsedPacks.contains(pack.id())) {
                 for (Emote emote : matches) {
                     this.rows.add(new Row(null, emote, 0, top, ROW_HEIGHT));
@@ -291,7 +291,7 @@ public final class EmoteList {
         this.scroll = Math.max(0, Math.min(this.scroll, Math.max(0, this.contentHeight - this.height)));
     }
 
-    // tooltip lines describing a pack, from its pack.json
+    // tooltip lines for a pack, from its pack.json
     static List<Canvas.Line> packInfo(Font font, EmotePack pack) {
         List<Canvas.Line> lines = new ArrayList<>();
         String title = pack.name().getString();
@@ -337,6 +337,6 @@ public final class EmoteList {
         return searching || !config.collapsedPacks.contains(section.id());
     }
 
-    // a section header or an emote
+    // section header or emote
     private record Row(@Nullable EmotePack pack, @Nullable Emote emote, int count, int top, int height) {}
 }

@@ -15,9 +15,9 @@ import org.jetbrains.annotations.Nullable;
 import java.util.List;
 import java.util.function.Supplier;
 
-// the emote wheel opened with the keybind. click a slot (or press 1-8) to play it, scroll or use the arrows to switch
-// pages. closing it with its key while a slot is hovered plays that slot, with "hold to open" releasing the key does.
-// below the wheel sit small text links: stop the running emote, and accept a partner emote request
+// emote wheel from the keybind. click a slot (or 1-8) to play, scroll or arrows switch pages. closing it with its
+// key over a slot plays that slot, with "hold to open" releasing the key does. small text links below the
+// wheel: stop the running emote, accept a partner request
 public class QuickWheelScreen extends EmoteScreen {
 
     private static final Component STOP = Component.translatable("playeremotes.button.stop");
@@ -26,7 +26,7 @@ public class QuickWheelScreen extends EmoteScreen {
     private final EmoteWheel wheel = new EmoteWheel();
     // releasing the wheel key plays the hovered emote
     private final boolean playOnRelease;
-    // the wheel key is still held from opening, its key repeats must not close the wheel
+    // wheel key still held from opening, its key repeats must not close the wheel
     private boolean keyHeld;
     private int mouseX = -1;
     private int mouseY = -1;
@@ -34,7 +34,7 @@ public class QuickWheelScreen extends EmoteScreen {
     // invisible buttons under the text links, for clicks, keyboard focus and controller snapping
     private Button stopButton;
     private Button acceptButton;
-    // the links' text, the buttons stay blank since an invisible button would still draw its label
+    // link texts, buttons stay blank since an invisible button still draws its label
     private Component stopText = Component.empty();
     private Component acceptText = Component.empty();
 
@@ -42,7 +42,7 @@ public class QuickWheelScreen extends EmoteScreen {
         this(parent, false);
     }
 
-    // held is whether the wheel key is held down while the wheel opens
+    // held is whether the wheel key is down while the wheel opens
     public QuickWheelScreen(@Nullable Screen parent, boolean held) {
         super(Component.translatable("screen.playeremotes.wheel"), parent);
         this.keyHeld = held;
@@ -51,8 +51,8 @@ public class QuickWheelScreen extends EmoteScreen {
 
     @Override
     protected void init() {
-        // centered on the screen (page number on the crosshair), leaving room for the hovered emote's name above,
-        // the links below and the button columns in the bottom corners
+        // centered on screen (page number on the crosshair), room for the hovered emote's name above, links below and
+        // button columns in the bottom corners
         this.wheel.setArea(116, 26, this.width - 232, this.height - 52);
         this.slotButtons = this.wheel.slotButtons(this::play);
         this.slotButtons.forEach(this::addRenderableWidget);
@@ -166,7 +166,7 @@ public class QuickWheelScreen extends EmoteScreen {
         return -1;
     }
 
-    // the stop link is only there while the player is emoting
+    // stop link only while the player emotes
     private boolean canStop() {
         LocalPlayer player = Minecraft.getInstance().player;
         return player != null && EmotePlayers.isPlaying(player.getUUID());
@@ -194,7 +194,7 @@ public class QuickWheelScreen extends EmoteScreen {
         return true;
     }
 
-    // closes the wheel, playing the hovered emote if there is one
+    // closes the wheel, plays the hovered emote if there is one
     private void closeOrPlayHovered() {
         int slot = this.mouseX < 0 ? -1 : this.wheel.slotAt(this.mouseX, this.mouseY);
         if (slot < 0) {

@@ -1,23 +1,26 @@
 package com.yamikhal.playeremotes.client.emote;
 
+import com.yamikhal.playeremotes.PlayerEmotes;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
+import org.jetbrains.annotations.Nullable;
 
-import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 
-// named functions that pick an emote variant group from the current world state (the "selector" field of an
-// emote file), other mods can register their own
+// named functions picking an emote variant group from the world state ("selector" of an emote file), other mods
+// can register their own
 public final class EmoteSelectors {
 
-    private static final Map<String, Function<Minecraft, String>> SELECTORS = new HashMap<>();
+    // concurrent, Forge and NeoForge set up mods in parallel and other mods may register then
+    private static final Map<String, Function<Minecraft, String>> SELECTORS = new ConcurrentHashMap<>();
 
     static {
-        // leans against a wall to the left/right, otherwise leans back
+        // leans against a wall to the left/right, else leans back
         register("lean", minecraft -> {
             Player player = minecraft.player;
             if (player == null) {
@@ -43,10 +46,21 @@ public final class EmoteSelectors {
         SELECTORS.put(name, selector);
     }
 
-    // null if the selector is unknown
+    // null if the selector is unknown or failed
+    @Nullable
     public static String select(String name, Minecraft minecraft) {
         Function<Minecraft, String> selector = SELECTORS.get(name);
-        return selector == null ? null : selector.apply(minecraft);
+        if (selector == null) {
+            return null;
+        }
+
+        // selectors can come from other mods, a broken one must not stop the emote
+        try {
+            return selector.apply(minecraft);
+        } catch (RuntimeException e) {
+            PlayerEmotes.LOGGER.error("Emote selector '{}' failed", name, e);
+            return null;
+        }
     }
 
     private static boolean isSolid(Player player, Direction side) {

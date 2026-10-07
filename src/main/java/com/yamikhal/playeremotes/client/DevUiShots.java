@@ -15,9 +15,9 @@ import net.minecraft.client.Screenshot;
 import java.io.File;
 import java.util.List;
 
-// dev helper for the showcase run: if playeremotes-uishots exists in the game directory, it opens the emote screens
-// once in a world and saves a screenshot of each (to screenshots/) before the showcase starts, only the game's own
-// frame is captured
+// dev helper for the showcase run: with playeremotes-uishots in the game directory, opens the emote screens once
+// in a world and screenshots each (screenshots/) before the showcase starts. emotes the showcase filters for come
+// first in the wheel
 final class DevUiShots {
 
     private static final int START_DELAY = 60;
@@ -27,7 +27,7 @@ final class DevUiShots {
 
     private DevUiShots() {}
 
-    // returns whether it is still busy, which holds back the showcase
+    // true while busy, holds back the showcase
     static boolean tick(Minecraft minecraft) {
         if (ticks == Integer.MAX_VALUE) {
             return false;
@@ -47,14 +47,14 @@ final class DevUiShots {
         }
 
         ticks++;
-        List<Emote> emotes = EmoteRegistry.all();
+        List<Emote> emotes = DevShowcase.matchingFirst(minecraft, EmoteRegistry.all());
         if (ticks == START_DELAY) {
             EmoteConfig config = PlayerEmotesClient.config();
             for (int slot = 0; slot < EmoteConfig.SLOTS && slot < emotes.size(); slot++) {
                 config.setWheelSlot(0, slot, emotes.get(slot).id());
             }
 
-            // a running emote, so the wheel shows its stop link
+            // running emote, so the wheel shows its stop link
             Emote looping = EmoteRegistry.get(PlayerEmotes.id("robot_dance"));
             if (looping != null) {
                 PlayerEmotesClient.play(looping);

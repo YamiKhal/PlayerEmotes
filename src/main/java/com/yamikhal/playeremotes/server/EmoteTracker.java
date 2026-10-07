@@ -14,12 +14,12 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
-// server-side bookkeeping of running emotes. the server does not animate anything, it checks emotes against its rules,
-// relays them to other players and replays running ones to players that start seeing the emoting player later. server
-// thread only (the maps are concurrent for safety)
+// server side bookkeeping of running emotes. server animates nothing, it checks emotes against its rules, relays
+// them to players around and replays running ones to players that start seeing the emoting player later.
+// server thread only (maps are concurrent for safety)
 public final class EmoteTracker {
 
-    // ticks a play may arrive early, so network jitter does not trip the cooldown the client also enforces
+    // ticks a play may arrive early, so network jitter does not trip the cooldown the client also checks
     private static final int COOLDOWN_TOLERANCE = 2;
 
     private static final Map<UUID, Running> RUNNING = new ConcurrentHashMap<>();
@@ -29,7 +29,7 @@ public final class EmoteTracker {
 
     private EmoteTracker() {}
 
-    // the client's channel is up, tell it the rules and which server emote packs there are
+    // client channel is up, send it the rules and which server emote packs there are
     public static void hello(ServerPlayer player, boolean acceptsRequests) {
         boolean first = HELLO.add(player.getUUID());
         PartnerEmotes.setAcceptsRequests(player, acceptsRequests);
@@ -46,7 +46,7 @@ public final class EmoteTracker {
         DevPartnerSetup.tick(server);
     }
 
-    // sends the rules again to everyone, e.g. after the config was reloaded
+    // sends the rules to everyone again, e.g. after a config reload
     public static void resendRules(Iterable<ServerPlayer> players) {
         for (ServerPlayer player : players) {
             if (saidHello(player)) {
@@ -71,7 +71,7 @@ public final class EmoteTracker {
         startRunning(player, emote, animation, options, now(player), 0);
     }
 
-    // starts the emote target is playing for player, at the same point in time
+    // starts the emote target plays for player, at the same point in time
     public static void sync(ServerPlayer player, int sequence, UUID target) {
         ServerConfig config = ServerConfig.get();
         Running running = RUNNING.get(target);
@@ -103,11 +103,11 @@ public final class EmoteTracker {
     public static void stop(ServerPlayer player) {
         PartnerEmotes.leave(player);
         if (RUNNING.remove(player.getUUID()) != null) {
-            broadcast(player, EmoteNetwork.remoteStop(player.getUUID()));
+            broadcast(player, EmoteNetwork.remoteStop(player.getUUID(), gameTime(player)));
         }
     }
 
-    // call when tracker starts receiving updates about target
+    // call when tracker starts getting updates about target
     public static void onStartTracking(ServerPlayer tracker, Entity target) {
         Running running = RUNNING.get(target.getUUID());
         if (running == null || !(target instanceof ServerPlayer)) {
@@ -118,7 +118,8 @@ public final class EmoteTracker {
             return;
         }
 
-        send(tracker, EmoteNetwork.remotePlay(target.getUUID(), running.animation, running.options, now(tracker) - running.startTick));
+        send(tracker, EmoteNetwork.remotePlay(target.getUUID(), running.animation, running.options, now(tracker) - running.startTick,
+                gameTime(tracker)));
     }
 
     public static void onDisconnect(ServerPlayer player) {
@@ -129,8 +130,9 @@ public final class EmoteTracker {
         ServerPacks.onDisconnect(player);
     }
 
-    // stops tracked emotes when the player changes dimension or respawns
-    public static void onRespawnOrTeleport(ServerPlayer player) {
+    // respawned player starts standing. dimension change needs nothing here, client drops its emote with the old
+    // world and tells the server
+    public static void onRespawn(ServerPlayer player) {
         stop(player);
     }
 
@@ -138,17 +140,17 @@ public final class EmoteTracker {
         return HELLO.contains(player.getUUID());
     }
 
-    // records a running emote, plain emotes (no partnership) are also sent to everyone else
+    // records a running emote, plain emotes (no partnership) also go to everyone
     static void startRunning(ServerPlayer player, ResourceLocation emote, ResourceLocation animation, EmoteNetwork.Options options,
                              int startTick, int partnership) {
         RUNNING.put(player.getUUID(), new Running(emote, animation, options, startTick, partnership));
         LAST_PLAY.put(player.getUUID(), now(player));
         if (partnership == 0) {
-            broadcast(player, EmoteNetwork.remotePlay(player.getUUID(), animation, options, now(player) - startTick));
+            broadcast(player, EmoteNetwork.remotePlay(player.getUUID(), animation, options, now(player) - startTick, gameTime(player)));
         }
     }
 
-    // forgets the emote of a partner emote that ended, clients learn about it from the end message
+    // forgets the emote of an ended partner emote, clients learn it from the end message
     static void forget(UUID player, int partnership) {
         Running running = RUNNING.get(player);
         if (running != null && running.partnership == partnership) {
@@ -183,12 +185,17 @@ public final class EmoteTracker {
 
     static void deny(ServerPlayer player, int sequence, Denial denial) {
         send(player, EmoteNetwork.denied(sequence, denial));
-        // whatever ran before is replaced on the client, so the others stop seeing it too
+        // whatever ran before gets replaced on the client, so others stop seeing it too
         stop(player);
     }
 
     static int now(ServerPlayer player) {
         return level(player).getServer().getTickCount();
+    }
+
+    // game time clients see (same in every dimension), stamped on messages for replays
+    static long gameTime(ServerPlayer player) {
+        return level(player).getServer().overworld().getGameTime();
     }
 
     private static void sendRules(ServerPlayer player) {
@@ -204,12 +211,11 @@ public final class EmoteTracker {
     }
 
     private static void broadcast(ServerPlayer source, byte[] message) {
-        // everyone in the dimension, clients that do not have the player loaded ignore it and get a replay through
-        // onStartTracking once the player comes into view
+        // everyone in the dimension, clients without the player loaded ignore it and get a replay through onStartTracking
+        // once the player comes into view. source gets it too, its client already plays the emote and ignores it, but
+        // replay mods record what arrives, so this puts the player's own emotes into recordings
         for (ServerPlayer receiver : level(source).players()) {
-            if (receiver != source) {
-                send(receiver, message);
-            }
+            send(receiver, message);
         }
     }
 
@@ -221,7 +227,7 @@ public final class EmoteTracker {
         return (ServerLevel) player.level();
     }
 
-    // partnership is the id of the partner emote this is part of, 0 for none
+    // partnership is the id of the partner emote this belongs to, 0 for none
     private record Running(ResourceLocation emote, ResourceLocation animation, EmoteNetwork.Options options, int startTick,
                            int partnership) {}
 }

@@ -9,22 +9,25 @@ import com.google.gson.JsonPrimitive;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.EnumMap;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
-// reads Bedrock animation files as exported by Blockbench (*.animation.json). supported: animation_length, loop
-// (true, false, "hold_on_last_frame"), rotation/position channels as constants or keyframes, pre/post, lerp_mode
-// (linear, catmullrom, step), GeckoLib-style easing/easingArgs and Molang expressions as values, and sound_effects /
-// particle_effects keyframes. bones not in the Part skeleton and scale channels are ignored
+// reads Bedrock animation files from Blockbench (*.animation.json): animation_length, loop (true, false,
+// "hold_on_last_frame"), rotation/position as constants or keyframes, pre/post, lerp_mode (linear, catmullrom,
+// step), GeckoLib easing/easingArgs, Molang values and sound_effects / particle_effects keyframes. bones outside the
+// skeleton are kept as prop bones (rotation, position and scale), scale of skeleton bones is skipped
 public final class AnimationParser {
 
     private static final Molang.Expr ZERO = Molang.constant(0);
+    // helper bones of big rigs are no props, they only cost memory
+    private static final int MAX_PROP_BONES = 32;
 
     private AnimationParser() {}
 
-    // animations by lower-case name
+    // animations by lower case name
     public static Map<String, EmoteAnimation> parse(JsonObject root) {
         JsonElement animations = root.get("animations");
         if (animations == null || !animations.isJsonObject()) {
@@ -34,7 +37,7 @@ public final class AnimationParser {
         Map<String, EmoteAnimation> result = new LinkedHashMap<>();
         for (Map.Entry<String, JsonElement> entry : animations.getAsJsonObject().entrySet()) {
             String name = entry.getKey().toLowerCase(Locale.ROOT);
-            // Blockbench names animations "animation.model.name", allow referencing them by the last segment
+            // Blockbench names them "animation.model.name", so the last segment works too
             if (name.startsWith("animation.")) {
                 name = name.substring(name.lastIndexOf('.') + 1);
             }
@@ -51,25 +54,33 @@ public final class AnimationParser {
 
     private static EmoteAnimation parseAnimation(String name, JsonObject node) {
         Map<Part, EmoteAnimation.Bone> bones = new EnumMap<>(Part.class);
+        Map<String, EmoteAnimation.PropBone> props = new HashMap<>();
         double lastKeyframe = 0;
         JsonElement bonesNode = node.get("bones");
         if (bonesNode != null) {
             for (Map.Entry<String, JsonElement> bone : bonesNode.getAsJsonObject().entrySet()) {
                 Part part = Part.byBoneName(bone.getKey());
-                if (part == null) continue;
+                Channel[] channels;
+                if (part != null) {
+                    JsonObject boneNode = bone.getValue().getAsJsonObject();
+                    Channel rotation = readChannel(boneNode.get("rotation"));
+                    Channel position = readChannel(boneNode.get("position"));
+                    if (rotation == null && position == null) continue;
 
-                JsonObject boneNode = bone.getValue().getAsJsonObject();
-                Channel rotation = readChannel(boneNode.get("rotation"));
-                Channel position = readChannel(boneNode.get("position"));
-                if (rotation == null && position == null) continue;
+                    bones.put(part, new EmoteAnimation.Bone(rotation, position));
+                    channels = new Channel[]{rotation, position};
+                } else {
+                    EmoteAnimation.PropBone prop = readPropBone(bone.getValue());
+                    if (prop == null || props.size() >= MAX_PROP_BONES) continue;
 
-                bones.put(part, new EmoteAnimation.Bone(rotation, position));
-                if (rotation != null) {
-                    lastKeyframe = Math.max(lastKeyframe, rotation.lastTime());
+                    props.put(bone.getKey().toLowerCase(Locale.ROOT), prop);
+                    channels = new Channel[]{prop.rotation(), prop.position(), prop.scale()};
                 }
 
-                if (position != null) {
-                    lastKeyframe = Math.max(lastKeyframe, position.lastTime());
+                for (Channel channel : channels) {
+                    if (channel != null) {
+                        lastKeyframe = Math.max(lastKeyframe, channel.lastTime());
+                    }
                 }
             }
         }
@@ -86,7 +97,11 @@ public final class AnimationParser {
         }
 
         double length = node.has("animation_length") ? node.get("animation_length").getAsDouble() : lastKeyframe;
-        // a zero-length loop is a static pose, hold it instead of looping over nothing
+        if (!Double.isFinite(length) || length < 0) {
+            length = lastKeyframe;
+        }
+
+        // zero length loop is a static pose, hold it instead
         if (loop == EmoteAnimation.LoopMode.LOOP && length <= 0) {
             loop = EmoteAnimation.LoopMode.HOLD;
         }
@@ -94,9 +109,10 @@ public final class AnimationParser {
         List<EmoteAnimation.Effect> effects = new ArrayList<>();
         readEffects(node.get("sound_effects"), EmoteAnimation.Effect.Kind.SOUND, effects);
         readEffects(node.get("particle_effects"), EmoteAnimation.Effect.Kind.PARTICLE, effects);
-        effects.removeIf(effect -> effect.time() < 0 || (length > 0 && effect.time() > length));
+        double end = length;
+        effects.removeIf(effect -> effect.time() < 0 || (end > 0 && effect.time() > end));
         effects.sort(Comparator.comparingDouble(EmoteAnimation.Effect::time));
-        return new EmoteAnimation(name, length, loop, bones, List.copyOf(effects));
+        return new EmoteAnimation(name, length, loop, bones, Map.copyOf(props), List.copyOf(effects));
     }
 
     // {"0.5": {"effect": "minecraft:heart", "locator": "head"}}, a time may also hold an array of effects
@@ -106,7 +122,7 @@ public final class AnimationParser {
         }
 
         for (Map.Entry<String, JsonElement> entry : node.getAsJsonObject().entrySet()) {
-            double time = Double.parseDouble(entry.getKey());
+            double time = time(entry.getKey());
             JsonElement value = entry.getValue();
             Iterable<JsonElement> list = value.isJsonArray() ? value.getAsJsonArray() : List.of(value);
             for (JsonElement element : list) {
@@ -125,6 +141,20 @@ public final class AnimationParser {
         }
     }
 
+    // null for bones without channels, or broken ones: other bones were skipped before props existed, a helper bone
+    // of some rig must not break the animation now
+    private static EmoteAnimation.PropBone readPropBone(JsonElement node) {
+        try {
+            JsonObject boneNode = node.getAsJsonObject();
+            Channel rotation = readChannel(boneNode.get("rotation"));
+            Channel position = readChannel(boneNode.get("position"));
+            Channel scale = readChannel(boneNode.get("scale"));
+            return rotation == null && position == null && scale == null ? null : new EmoteAnimation.PropBone(rotation, position, scale);
+        } catch (RuntimeException e) {
+            return null;
+        }
+    }
+
     private static Channel readChannel(JsonElement node) {
         if (node == null) {
             return null;
@@ -137,11 +167,11 @@ public final class AnimationParser {
         } else {
             JsonObject object = node.getAsJsonObject();
             if (object.has("vector")) {
-                // GeckoLib style single keyframe: { "vector": [...], "easing": ... }
+                // GeckoLib single keyframe: { "vector": [...], "easing": ... }
                 frames.add(keyframe(0, object));
             } else {
                 for (Map.Entry<String, JsonElement> entry : object.entrySet()) {
-                    double time = Double.parseDouble(entry.getKey());
+                    double time = time(entry.getKey());
                     JsonElement value = entry.getValue();
                     if (value.isJsonObject()) {
                         frames.add(keyframe(time, value.getAsJsonObject()));
@@ -206,11 +236,21 @@ public final class AnimationParser {
         return new Channel.Keyframe(time, pre, post, lerp, easing, easingArg);
     }
 
+    // keyframe time in seconds, NaN or infinity breaks keyframe order and animation length
+    private static double time(String key) {
+        double time = Double.parseDouble(key);
+        if (!Double.isFinite(time)) {
+            throw new JsonParseException("invalid keyframe time '" + key + "'");
+        }
+
+        return time;
+    }
+
     private static JsonElement unwrap(JsonElement element) {
         return element.isJsonObject() ? element.getAsJsonObject().get("vector") : element;
     }
 
-    // arrays of numbers or Molang strings, a single value applies to all three axes
+    // array of numbers or Molang strings, single value goes to all three axes
     private static Molang.Expr[] vector(JsonElement element) {
         if (element.isJsonArray()) {
             JsonArray array = element.getAsJsonArray();

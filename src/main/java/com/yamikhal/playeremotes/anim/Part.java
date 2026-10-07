@@ -2,7 +2,7 @@ package com.yamikhal.playeremotes.anim;
 
 import java.util.Locale;
 
-// mirrors the bone layout of workspace/player_emote_template.geo.json so the Blockbench preview matches the game:
+// same bone layout as workspace/player_emote_template.geo.json, so the Blockbench preview matches the game:
 // body (root, moves the whole player)
 // ├── torso (pivot at the waist)
 // │   ├── head
@@ -14,9 +14,9 @@ import java.util.Locale;
 // │   └── right_lower_leg
 // └── left_leg
 //     └── left_lower_leg
-// coordinates are Java model space in pixels (Y points down, 0 = neck, 24 = feet), origin is where the
-// vanilla model part sits at rest, pivot is the Blockbench bone pivot the animation rotates around. the lower
-// halves have no model part of their own: they bend their limb at its middle (elbow, knee), see Bend
+// Java model space in pixels (y down, 0 = neck, 24 = feet), origin is where the vanilla part rests, pivot the
+// Blockbench bone pivot the animation rotates around. lower halves have no model part, they bend their limb at
+// its middle (elbow, knee), see Bend
 public enum Part {
     BODY(null, 0, 12, 0, 0, 12, 0),
     TORSO(BODY, 0, 12, 0, 0, 0, 0),
@@ -31,7 +31,7 @@ public enum Part {
     LEFT_LOWER_LEG(LEFT_LEG, 1.9F, 18, 0, 1.9F, 18, 0);
 
     public static final Part[] VALUES = values();
-    // parts that map to a vanilla model part (everything except the root and the lower limb halves)
+    // parts with a vanilla model part (all but the root and lower halves)
     public static final Part[] MODEL_PARTS = {TORSO, HEAD, RIGHT_ARM, LEFT_ARM, RIGHT_LEG, LEFT_LEG};
     // limbs that bend at their middle, and their lower halves (same order)
     public static final Part[] LIMBS = {RIGHT_ARM, LEFT_ARM, RIGHT_LEG, LEFT_LEG};
@@ -63,7 +63,7 @@ public enum Part {
         return this == RIGHT_ARM || this == LEFT_ARM || this == RIGHT_LEG || this == LEFT_LEG;
     }
 
-    // height of a limb's joint below the limb's pivot in pixels: 4 for the elbows, 6 for the knees
+    // joint height below the limb's pivot in pixels: 4 for elbows, 6 for knees
     public float jointY() {
         return this.lower().pivotY - this.pivotY;
     }
@@ -79,7 +79,7 @@ public enum Part {
         };
     }
 
-    // resolves Blockbench bone names (right_arm, rightArm, RightArm), null for bones outside the skeleton
+    // resolves bone names (right_arm, rightArm, RightArm), null outside the skeleton
     public static Part byBoneName(String bone) {
         return switch (bone.toLowerCase(Locale.ROOT).replace("_", "")) {
             case "body", "root" -> BODY;

@@ -10,23 +10,24 @@ import org.jetbrains.annotations.Nullable;
 import java.util.HashMap;
 import java.util.Map;
 
-// timing of the 3D emote previews in the menus: a preview shows a frozen pose until it becomes active (hovered or
-// selected), then plays from the start, and resets once it is no longer active
+// timing of the 3D previews in the menus: frozen pose until active (hovered or selected), then plays from the
+// start, resets once no longer active
 public final class EmotePreview {
 
-    // pause after an animation that does not loop, before it starts over
+    // pause after a non looping animation before it starts over
     private static final double RESTART_DELAY = 0.75;
     // start time in milliseconds per active preview
     private static final Map<Object, Long> ACTIVE = new HashMap<>();
 
     private EmotePreview() {}
 
-    // forgets all running previews, so they start over the next time a screen shows them
+    // forgets all running previews, they start over next time a screen shows them
     public static void reset() {
         ACTIVE.clear();
     }
 
-    // key identifies the preview (e.g. a wheel slot) so it keeps its own timer, null if the emote has no loaded animation
+    // key identifies the preview (e.g. a wheel slot) so it keeps its own timer, null if the emote has no loaded
+    // animation
     @Nullable
     public static EmotePlayback.Frame frame(Emote emote, Object key, boolean active) {
         EmoteAnimation animation = animation(emote);
@@ -36,7 +37,7 @@ public final class EmotePreview {
 
         if (!active) {
             ACTIVE.remove(key);
-            return new EmotePlayback.Frame(animation, previewTime(emote, animation), 1, emote.look(), emote.splitLimbs());
+            return frame(emote, animation, previewTime(emote, animation));
         }
 
         long now = System.nanoTime() / 1_000_000;
@@ -46,7 +47,11 @@ public final class EmotePreview {
             seconds = 0;
         }
 
-        return new EmotePlayback.Frame(animation, seconds, 1, emote.look(), emote.splitLimbs());
+        return frame(emote, animation, seconds);
+    }
+
+    private static EmotePlayback.Frame frame(Emote emote, EmoteAnimation animation, double seconds) {
+        return new EmotePlayback.Frame(animation, seconds, 1, emote.look(), emote.splitLimbs(), null, emote.prop(), emote.props());
     }
 
     @Nullable

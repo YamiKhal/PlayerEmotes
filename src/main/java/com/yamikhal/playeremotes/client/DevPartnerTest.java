@@ -8,9 +8,8 @@ import net.minecraft.client.Screenshot;
 
 import java.io.File;
 
-// dev helper for the two-client multiplayer run: if playeremotes-partnertest exists in the game directory, PlayerA
-// starts a high five once PlayerB is in view and PlayerB accepts it, and both save screenshots (the server lines them
-// up, see the server's DevPartnerSetup), only the game's own frame is captured
+// dev helper for the two client run: with playeremotes-partnertest in the game directory, PlayerA starts a high
+// five once PlayerB is in view, PlayerB accepts, both take screenshots (server lines them up, see DevPartnerSetup)
 final class DevPartnerTest {
 
     private static final int START_DELAY = 100;
@@ -44,6 +43,12 @@ final class DevPartnerTest {
             ticks = 0;
         }
 
+        // left the world during the test
+        if (minecraft.player == null || minecraft.level == null) {
+            ticks = Integer.MAX_VALUE;
+            return;
+        }
+
         ticks++;
         boolean starter = minecraft.player.getScoreboardName().equals("PlayerA");
         if (starter && ticks == START_DELAY) {
@@ -64,7 +69,7 @@ final class DevPartnerTest {
 
         if (partnerTicks >= 0) {
             partnerTicks++;
-            // a side view: looking around does not turn the drawn body, which stays aligned with the partner
+            // side view, looking around does not turn the drawn body, it stays aligned with the partner
             if (!starter && partnerTicks == 2) {
                 minecraft.player.setYRot(minecraft.player.getYRot() + 90);
             }
@@ -74,7 +79,7 @@ final class DevPartnerTest {
             }
         }
 
-        // then a prop emote from the server's packs (if there is one), which the other player syncs with
+        // then a prop emote from the server packs (if any), the other player syncs with it
         if (partnerTicks == 60) {
             if (starter) {
                 Emote prop = EmoteRegistry.get(PlayerEmotes.id("emotetest", "server_spin"));

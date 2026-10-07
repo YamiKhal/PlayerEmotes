@@ -2,10 +2,10 @@ package com.yamikhal.playeremotes.anim;
 
 import java.util.Arrays;
 
-// one evaluated frame of an animation, already converted from Blockbench to Minecraft space:
+// one evaluated animation frame, already in Minecraft space:
 // - model parts: position in pixels (x, -y, z), rotation in radians (x, y, z)
-// - BODY: position in blocks (-x/16, y/16, z/16), rotation in radians (-x, -y, z), applied to the pose stack in entity space
-// also acts as the Molang context while the frame is evaluated
+// - BODY: position in blocks (-x/16, y/16, z/16), rotation in radians (-x, -y, z), applied to the pose stack
+// also the Molang context while the frame is evaluated
 public final class Pose implements Molang.Context {
 
     private final double[][] rotation = new double[Part.VALUES.length][3];
@@ -33,9 +33,9 @@ public final class Pose implements Molang.Context {
     // degrees is the Blockbench rotation
     void setRotation(Part part, double[] degrees) {
         double[] r = this.rotation[part.ordinal()];
-        double x = Math.toRadians(degrees[0]);
-        double y = Math.toRadians(degrees[1]);
-        double z = Math.toRadians(degrees[2]);
+        double x = Math.toRadians(finite(degrees[0]));
+        double y = Math.toRadians(finite(degrees[1]));
+        double z = Math.toRadians(finite(degrees[2]));
         if (part == Part.BODY) {
             r[0] = -x;
             r[1] = -y;
@@ -51,14 +51,17 @@ public final class Pose implements Molang.Context {
     // pixels is the Blockbench position offset
     void setPosition(Part part, double[] pixels) {
         double[] p = this.position[part.ordinal()];
+        double x = finite(pixels[0]);
+        double y = finite(pixels[1]);
+        double z = finite(pixels[2]);
         if (part == Part.BODY) {
-            p[0] = -pixels[0] / 16;
-            p[1] = pixels[1] / 16;
-            p[2] = pixels[2] / 16;
+            p[0] = -x / 16;
+            p[1] = y / 16;
+            p[2] = z / 16;
         } else {
-            p[0] = pixels[0];
-            p[1] = -pixels[1];
-            p[2] = pixels[2];
+            p[0] = x;
+            p[1] = -y;
+            p[2] = z;
         }
 
         this.hasPosition[part.ordinal()] = true;
@@ -88,5 +91,10 @@ public final class Pose implements Molang.Context {
     @Override
     public double lifeTime() {
         return this.lifeTime;
+    }
+
+    // Molang like math.sqrt(-1) gives NaN, that makes the whole player vanish
+    private static double finite(double value) {
+        return Double.isFinite(value) ? value : 0;
     }
 }

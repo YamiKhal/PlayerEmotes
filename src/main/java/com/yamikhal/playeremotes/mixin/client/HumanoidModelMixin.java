@@ -25,7 +25,7 @@ import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Shadow;
 //?}
 
-// poses armor and other humanoid models drawn for an emoting player, the player model itself is posed by PlayerModelMixin
+// poses armor and other humanoid models of an emoting player, the player model itself is PlayerModelMixin
 @Mixin(HumanoidModel.class)
 public abstract class HumanoidModelMixin {
 
@@ -73,7 +73,7 @@ public abstract class HumanoidModelMixin {
         this.hat.copyFrom(this.head);
     }
 
-    // armor is posed by copying the player model, which bends its limbs too
+    // armor gets posed by copying the player model, which bends its limbs too
     @Inject(method = "copyPropertiesTo(Lnet/minecraft/client/model/HumanoidModel;)V", at = @At("TAIL"))
     private void playeremotes$copyBends(HumanoidModel<?> other, CallbackInfo ci) {
         EmoteRenderer.copyBends((HumanoidModel<?>) (Object) this, other);

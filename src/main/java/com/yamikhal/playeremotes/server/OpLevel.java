@@ -9,7 +9,7 @@ import org.jetbrains.annotations.Nullable;
 import net.minecraft.server.permissions.Permissions;
 *///?}
 
-// vanilla operator levels, which became permission sets in 1.21.11
+// vanilla operator levels, permission sets since 1.21.11
 public final class OpLevel {
 
     private OpLevel() {}

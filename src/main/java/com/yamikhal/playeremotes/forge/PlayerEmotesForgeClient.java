@@ -3,10 +3,10 @@ package com.yamikhal.playeremotes.forge;
 //? if forge {
 /*import com.yamikhal.playeremotes.client.EmoteCommands;
 import com.yamikhal.playeremotes.client.PlayerEmotesClient;
-import net.minecraftforge.client.event.RegisterClientCommandsEvent;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientPacketListener;
 import net.minecraft.server.packs.resources.ResourceManagerReloadListener;
+import net.minecraftforge.client.event.RegisterClientCommandsEvent;
 import net.minecraftforge.client.event.RegisterClientReloadListenersEvent;
 import net.minecraftforge.client.event.RegisterKeyMappingsEvent;
 import net.minecraftforge.event.TickEvent;

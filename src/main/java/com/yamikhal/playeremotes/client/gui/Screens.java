@@ -4,7 +4,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.Screen;
 import org.jetbrains.annotations.Nullable;
 
-// opening and querying screens, which moved from Minecraft to its Gui in 26.3
+// opening and querying screens, moved from Minecraft to its Gui in 26.3
 public final class Screens {
 
     private Screens() {}

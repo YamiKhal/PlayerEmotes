@@ -20,13 +20,13 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
-// plays the sound and particle keyframes of running emotes, every client does this on its own from the animation
-// clock so effects cost no network traffic, client thread only
+// plays sound and particle keyframes of running emotes, each client on its own from the animation clock so
+// effects cost no network traffic, client thread only
 final class EmoteEffects {
 
-    // effects of an emote that started longer ago than this (a replay for a late viewer) are not caught up on
+    // effects of an emote older than this (replay for a late viewer) are not caught up on
     private static final double CATCH_UP_SECONDS = 0.25;
-    // most loop periods caught up on in one tick, should a tick ever cover several
+    // most loop periods caught up on in one tick, in case a tick ever covers several
     private static final int MAX_CYCLES = 2;
 
     private static final Map<String, Optional<ParticleOptions>> PARTICLES = new HashMap<>();
@@ -49,7 +49,7 @@ final class EmoteEffects {
         double previous = playback.effectTime;
         playback.effectTime = elapsed;
         if (Double.isNaN(previous)) {
-            // first tick: fresh emotes fire their keyframes from 0, replays start from where they are
+            // first tick: fresh emotes fire keyframes from 0, replays start where they are
             if (elapsed > CATCH_UP_SECONDS) {
                 return;
             }
@@ -57,7 +57,8 @@ final class EmoteEffects {
             previous = -1e-9;
         }
 
-        if (elapsed <= previous) {
+        // jump in a replay skips the effects on the way, like a late viewer
+        if (elapsed <= previous || elapsed - previous > CATCH_UP_SECONDS) {
             return;
         }
 
@@ -109,11 +110,11 @@ final class EmoteEffects {
             return Optional.empty();
         }
 
-        // sounds only need to exist in a sounds.json, not in the registry
+        // sounds only need a sounds.json entry, not the registry
         return Optional.of(SoundEvent.createVariableRangeEvent(id));
     }
 
-    // only particles without options (hearts, notes, smoke, ...) can be named in a keyframe
+    // only particles without options (hearts, notes, smoke, ...) work in a keyframe
     private static Optional<ParticleOptions> particle(String name) {
         ResourceLocation id = ResourceLocation.tryParse(name);
         Object type = id == null ? null : BuiltInRegistries.PARTICLE_TYPE.getOptional(id).orElse(null);

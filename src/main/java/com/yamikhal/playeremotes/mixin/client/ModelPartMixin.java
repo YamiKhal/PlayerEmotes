@@ -18,10 +18,10 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import java.util.List;
 
-// draws bent limbs (see Bend). only the cubes of a bent part are replaced, the part's transform, its children and the
-// vertex consumer stay vanilla's, so render types, shaders and layers that render the part again keep working. mods
-// that draw cubes their own way hook the cubes (Sodium), which a bent part skips. the low priority runs this ahead of
-// mods that would cancel the whole part's cubes at the same spot
+// draws bent limbs (see Bend). only the cubes of a bent part get replaced, its transform, children and vertex
+// consumer stay vanilla's, so render types, shaders and layers drawing the part again keep working. mods drawing
+// cubes their own way hook the cubes (Sodium), which a bent part skips. low priority runs this before mods that
+// would cancel the whole part's cubes at the same spot
 @Mixin(value = ModelPart.class, priority = 500)
 public abstract class ModelPartMixin implements BendablePart {
 
@@ -37,6 +37,7 @@ public abstract class ModelPartMixin implements BendablePart {
     private LimbMesh[] playeremotes$meshes;
 
     @Override
+    @Nullable
     public Bend playeremotes$bend() {
         return this.playeremotes$bend;
     }
@@ -73,7 +74,7 @@ public abstract class ModelPartMixin implements BendablePart {
     }
     *///?}
 
-    // the cut cubes while the part is bent, null to draw it like vanilla
+    // cut cubes while bent, null to draw it like vanilla
     @Unique
     @Nullable
     private LimbMesh[] playeremotes$meshes() {
@@ -90,7 +91,7 @@ public abstract class ModelPartMixin implements BendablePart {
         return meshes;
     }
 
-    // posing a part from scratch straightens it, an emote bends it again afterwards
+    // posing a part from scratch straightens it, an emote bends it again after
     @Inject(method = "resetPose", at = @At("HEAD"))
     private void playeremotes$straighten(CallbackInfo ci) {
         if (this.playeremotes$bend != null) {

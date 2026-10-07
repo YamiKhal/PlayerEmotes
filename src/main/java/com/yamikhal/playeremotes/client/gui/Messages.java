@@ -4,7 +4,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.network.chat.Component;
 
-// client-side messages to the local player, whose API changed in 26.1
+// client side messages to the local player, API changed in 26.1
 public final class Messages {
 
     private Messages() {}

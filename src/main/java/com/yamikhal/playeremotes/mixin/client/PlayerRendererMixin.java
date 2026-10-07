@@ -4,6 +4,7 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import com.yamikhal.playeremotes.client.animation.EmotePlayback;
 import com.yamikhal.playeremotes.client.animation.EmotePlayers;
 import com.yamikhal.playeremotes.client.animation.EmoteRenderer;
+import net.minecraft.util.Mth;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -24,7 +25,7 @@ import net.minecraft.client.player.AbstractClientPlayer;
 import net.minecraft.client.renderer.entity.player.PlayerRenderer;
 //?}
 
-// applies the whole-body transform and hands the current emote frame to the model
+// applies the whole body transform and hands the current emote frame to the model
 //? if >=1.21.9 {
 /*@Mixin(AvatarRenderer.class)
 *///?} else
@@ -78,12 +79,12 @@ public abstract class PlayerRendererMixin {
             return;
         }
 
-        EmoteRenderer.alignPartner(poseStack, frame, net.minecraft.util.Mth.lerp(partialTick, player.xo, player.getX()),
-                net.minecraft.util.Mth.lerp(partialTick, player.zo, player.getZ()), yBodyRot);
+        EmoteRenderer.alignPartner(poseStack, frame, Mth.lerp(partialTick, player.xo, player.getX()),
+                Mth.lerp(partialTick, player.zo, player.getZ()), yBodyRot);
         EmoteRenderer.poseBody(poseStack, frame);
     }
 
-    // the first person hand runs setupAnim too, it must not be animated
+    // first person hand runs setupAnim too, must not be animated
     @Inject(method = "renderHand", at = @At("HEAD"))
     private void playeremotes$beginHand(CallbackInfo ci) {
         EmoteRenderer.renderingHand = true;

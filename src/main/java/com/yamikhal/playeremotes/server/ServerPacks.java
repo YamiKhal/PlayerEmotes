@@ -23,12 +23,12 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.zip.Deflater;
 
-// emote packs from data packs (data/<namespace>/playeremotes/, same layout as resource packs), sent to players so a
-// server can have its own emotes. players get a manifest of hashes and download only files their cache lacks,
+// emote packs from data packs (data/<namespace>/playeremotes/, same layout as resource packs), sent to players so
+// a server can have its own emotes. players get a manifest of hashes and only download what their cache lacks,
 // compressed and throttled so joining stays smooth
 public final class ServerPacks {
 
-    // compressed bytes sent per player per tick (about 1.3 MB/s)
+    // compressed bytes per player per tick (about 1.3 MB/s)
     private static final int BYTES_PER_TICK = 64 * 1024;
     // pending data messages per player
     private static final Map<UUID, Deque<byte[]>> QUEUES = new ConcurrentHashMap<>();
@@ -38,7 +38,7 @@ public final class ServerPacks {
 
     private ServerPacks() {}
 
-    // reads the packs of the server's data packs, registered as a server data reload listener
+    // reads the packs of the server's data packs, registered as server data reload listener
     public static void reload(ResourceManager manager) {
         Map<ResourceLocation, Resource> found = new TreeMap<>(manager.listResources(PlayerEmotes.MOD_ID,
                 path -> path.getPath().endsWith(".json")));
@@ -46,6 +46,13 @@ public final class ServerPacks {
         long total = 0;
         for (Map.Entry<ResourceLocation, Resource> file : found.entrySet()) {
             String path = file.getKey().getNamespace() + "/" + file.getKey().getPath().substring(PlayerEmotes.MOD_ID.length() + 1);
+            // too long for the manifest, encoding would throw on the server thread
+            if (path.length() > EmoteNetwork.MAX_PATH_LENGTH) {
+                PlayerEmotes.LOGGER.warn("Server emote file {} has a path longer than {} characters and is not sent", file.getKey(),
+                        EmoteNetwork.MAX_PATH_LENGTH);
+                continue;
+            }
+
             try (InputStream in = file.getValue().open()) {
                 byte[] data = in.readNBytes(EmoteNetwork.MAX_PACK_FILE_SIZE + 1);
                 if (data.length > EmoteNetwork.MAX_PACK_FILE_SIZE) {
@@ -72,7 +79,7 @@ public final class ServerPacks {
         }
     }
 
-    // sends the manifest to a player that just said hello, if there is anything to send
+    // sends the manifest to a player that just said hello, if there is anything
     public static void onHello(ServerPlayer player) {
         Snapshot current = snapshot;
         if (ServerConfig.get().sendServerPacks && !current.files.isEmpty()) {
@@ -104,7 +111,7 @@ public final class ServerPacks {
         }
     }
 
-    // sends queued data within the per-tick budget, and new manifests after a data pack reload
+    // sends queued data within the per tick budget, and new manifests after a data pack reload
     public static void tick(MinecraftServer server) {
         if (changed) {
             changed = false;
@@ -181,7 +188,7 @@ public final class ServerPacks {
         }
     }
 
-    // a file prepared for sending
+    // file prepared for sending
     private record PackFile(EmoteNetwork.PackEntry entry, byte[] compressed) {}
 
     private record Snapshot(int generation, List<PackFile> files) {}

@@ -10,7 +10,7 @@ import org.spongepowered.asm.mixin.injection.ModifyArg;
 
 import java.util.List;
 
-// registers the emote preview picture-in-picture renderers next to the vanilla ones
+// registers the preview picture-in-picture renderers next to the vanilla ones
 @Mixin(GameRenderer.class)
 public abstract class GameRendererMixin {
 
