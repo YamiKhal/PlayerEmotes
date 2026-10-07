@@ -2,6 +2,7 @@ package com.yamikhal.playeremotes.network;
 
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
@@ -10,8 +11,11 @@ import java.util.Locale;
 
 // item moved by its own bone of the animation (sword thrown up, chair to sit on). bone is the Blockbench bone name,
 // item the item to show for ITEM, otherwise the one the player holds (source). attach is what the bone hangs on,
-// display how the item model is drawn
-public record AnimatedProp(String bone, Source source, @Nullable ResourceLocation item, Attach attach, Display display) {
+// display how the item model is drawn. parent is the index of the prop it hangs on (before it in the list, -1 for
+// none), a child has its parent's attach. pivot is the bone's pivot relative to the parent's (or the attach point's),
+// Blockbench pixels
+public record AnimatedProp(String bone, Source source, @Nullable ResourceLocation item, Attach attach, Display display,
+                           int parent, Vec3 pivot) {
 
     public static final int MAX_PROPS = 8;
     public static final int MAX_BONE_LENGTH = 64;
@@ -22,7 +26,9 @@ public record AnimatedProp(String bone, Source source, @Nullable ResourceLocatio
         HELD_RIGHT,
         HELD_LEFT,
         HELD_MAINHAND,
-        HELD_OFFHAND
+        HELD_OFFHAND,
+        // no item, only carries other props
+        NONE
     }
 
     public enum Attach {
@@ -55,9 +61,14 @@ public record AnimatedProp(String bone, Source source, @Nullable ResourceLocatio
         }
     }
 
+    // has a parent or a pivot of its own (optional "parent" / "pivot" in pack.json)
+    public boolean isNested() {
+        return this.parent >= 0 || !this.pivot.equals(Vec3.ZERO);
+    }
+
     // item the player holds, not one of its own
     public boolean isHeld() {
-        return this.source != Source.ITEM;
+        return this.source != Source.ITEM && this.source != Source.NONE;
     }
 
     static void writeList(FriendlyByteBuf buf, List<AnimatedProp> props) {
@@ -74,15 +85,16 @@ public record AnimatedProp(String bone, Source source, @Nullable ResourceLocatio
             return List.of();
         }
 
+        // one broken prop drops them all, parents are found by index
         List<AnimatedProp> props = new ArrayList<>(count);
+        boolean broken = false;
         for (int i = 0; i < count; i++) {
             AnimatedProp prop = read(buf);
-            if (prop != null) {
-                props.add(prop);
-            }
+            broken |= prop == null || prop.parent >= i;
+            props.add(prop);
         }
 
-        return List.copyOf(props);
+        return broken ? List.of() : List.copyOf(props);
     }
 
     private void write(FriendlyByteBuf buf) {
@@ -90,6 +102,16 @@ public record AnimatedProp(String bone, Source source, @Nullable ResourceLocatio
         buf.writeByte(this.source.ordinal());
         buf.writeByte(this.attach.ordinal());
         buf.writeByte(this.display.ordinal());
+        // nesting is rare, plain props only send that they have none
+        boolean nested = this.isNested();
+        buf.writeBoolean(nested);
+        if (nested) {
+            buf.writeByte(this.parent);
+            buf.writeFloat((float) this.pivot.x);
+            buf.writeFloat((float) this.pivot.y);
+            buf.writeFloat((float) this.pivot.z);
+        }
+
         if (this.source == Source.ITEM) {
             buf.writeUtf(this.item.toString(), MAX_ID_LENGTH);
         }
@@ -102,15 +124,26 @@ public record AnimatedProp(String bone, Source source, @Nullable ResourceLocatio
         Source source = byId(Source.values(), buf.readUnsignedByte());
         Attach attach = byId(Attach.values(), buf.readUnsignedByte());
         Display display = byId(Display.values(), buf.readUnsignedByte());
+        int parent = -1;
+        Vec3 pivot = Vec3.ZERO;
+        boolean broken = false;
+        if (buf.readBoolean()) {
+            parent = buf.readByte();
+            pivot = new Vec3(buf.readFloat(), buf.readFloat(), buf.readFloat());
+            broken = !Double.isFinite(pivot.x) || !Double.isFinite(pivot.y) || !Double.isFinite(pivot.z);
+        }
+
         ResourceLocation item = null;
         if (source == Source.ITEM) {
             item = ResourceLocation.tryParse(buf.readUtf(MAX_ID_LENGTH));
-            if (item == null) {
-                return null;
-            }
+            broken |= item == null;
         }
 
-        return new AnimatedProp(bone, source, item, attach, display);
+        if (broken) {
+            return null;
+        }
+
+        return new AnimatedProp(bone, source, item, attach, display, parent, pivot);
     }
 
     // unknown ids (newer version) fall back to the first value

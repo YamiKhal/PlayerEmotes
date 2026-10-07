@@ -18,6 +18,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.util.GsonHelper;
+import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.ByteArrayInputStream;
@@ -382,14 +383,16 @@ public final class EmoteRegistry {
     }
 
     // "props": {"<bone>": "minecraft:stick"} or {"<bone>": {"item": "held", "attach": "right_hand", "display": "hand"}}
-    // item is an id or held (the hand it is attached to, else the main hand), held_right, held_left, held_mainhand,
-    // held_offhand, default held. attach defaults from the bone name (right, left, head, body or torso), else root
+    // item is an id, none (only carries other props) or held (the hand it is attached to, else the main hand),
+    // held_right, held_left, held_mainhand, held_offhand, default held. attach defaults from the bone name (right, left,
+    // head, body or torso), else root. optional "parent" and "pivot" nest props, see readNestedProps
     private static List<AnimatedProp> readProps(@Nullable JsonElement json) {
         if (json == null || !json.isJsonObject()) {
             return List.of();
         }
 
-        List<AnimatedProp> props = new ArrayList<>();
+        List<Map.Entry<String, JsonObject>> entries = new ArrayList<>();
+        boolean nested = false;
         for (Map.Entry<String, JsonElement> entry : json.getAsJsonObject().entrySet()) {
             String bone = entry.getKey().toLowerCase(Locale.ROOT);
             if (bone.isEmpty() || bone.length() > AnimatedProp.MAX_BONE_LENGTH) {
@@ -401,40 +404,135 @@ public final class EmoteRegistry {
                 throw new IllegalArgumentException("Prop bone '" + entry.getKey() + "' is a player bone");
             }
 
-            if (props.size() >= AnimatedProp.MAX_PROPS) {
+            if (entries.size() >= AnimatedProp.MAX_PROPS) {
                 throw new IllegalArgumentException("More than " + AnimatedProp.MAX_PROPS + " props");
             }
 
-            if (!entry.getValue().isJsonObject() && !entry.getValue().isJsonPrimitive()) {
+            JsonObject object;
+            if (entry.getValue().isJsonObject()) {
+                object = entry.getValue().getAsJsonObject();
+            } else if (entry.getValue().isJsonPrimitive()) {
+                object = new JsonObject();
+                object.add("item", entry.getValue());
+            } else {
                 throw new IllegalArgumentException("Prop '" + entry.getKey() + "' must be an item or an object");
             }
 
-            JsonObject object = entry.getValue().isJsonObject() ? entry.getValue().getAsJsonObject() : new JsonObject();
-            String item = entry.getValue().isJsonPrimitive() ? entry.getValue().getAsString()
-                    : GsonHelper.getAsString(object, "item", "held");
-            AnimatedProp.Attach attach = object.has("attach")
-                    ? attach(GsonHelper.getAsString(object, "attach"))
-                    : bone.contains("right") ? AnimatedProp.Attach.RIGHT_HAND
-                    : bone.contains("left") ? AnimatedProp.Attach.LEFT_HAND
-                    : bone.contains("head") ? AnimatedProp.Attach.HEAD
-                    : bone.contains("body") || bone.contains("torso") ? AnimatedProp.Attach.BODY
-                    : AnimatedProp.Attach.ROOT;
-            AnimatedProp.Display display = object.has("display") ? display(GsonHelper.getAsString(object, "display"))
-                    : AnimatedProp.Display.AUTO;
-            AnimatedProp.Source source = switch (item.trim().toLowerCase(Locale.ROOT)) {
-                case "held" -> attach == AnimatedProp.Attach.RIGHT_HAND ? AnimatedProp.Source.HELD_RIGHT
-                        : attach == AnimatedProp.Attach.LEFT_HAND ? AnimatedProp.Source.HELD_LEFT
-                        : AnimatedProp.Source.HELD_MAINHAND;
-                case "held_right" -> AnimatedProp.Source.HELD_RIGHT;
-                case "held_left" -> AnimatedProp.Source.HELD_LEFT;
-                case "held_mainhand" -> AnimatedProp.Source.HELD_MAINHAND;
-                case "held_offhand" -> AnimatedProp.Source.HELD_OFFHAND;
-                default -> AnimatedProp.Source.ITEM;
-            };
-            props.add(new AnimatedProp(bone, source, source == AnimatedProp.Source.ITEM ? resolveItem(item) : null, attach, display));
+            nested |= object.has("parent") || object.has("pivot");
+            entries.add(Map.entry(bone, object));
+        }
+
+        if (nested) {
+            return readNestedProps(entries);
+        }
+
+        List<AnimatedProp> props = new ArrayList<>(entries.size());
+        for (Map.Entry<String, JsonObject> entry : entries) {
+            props.add(readProp(entry.getKey(), entry.getValue(), propAttach(entry.getKey(), entry.getValue()), -1, Vec3.ZERO));
         }
 
         return List.copyOf(props);
+    }
+
+    // only for packs that use them: "parent": "<bone>" hangs a prop on another one and takes its attach, "pivot" is
+    // the bone's Blockbench pivot, default the parent's or the attach point's. parents go first in the list
+    private static List<AnimatedProp> readNestedProps(List<Map.Entry<String, JsonObject>> entries) {
+        // bone names ignore case, so two keys can be the same bone
+        Map<String, JsonObject> objects = new LinkedHashMap<>();
+        for (Map.Entry<String, JsonObject> entry : entries) {
+            if (objects.put(entry.getKey(), entry.getValue()) != null) {
+                throw new IllegalArgumentException("Prop bone '" + entry.getKey() + "' is there twice");
+            }
+        }
+
+        List<AnimatedProp> props = new ArrayList<>();
+        List<Vec3> pivots = new ArrayList<>();
+        Map<String, Integer> indices = new HashMap<>();
+        while (props.size() < objects.size()) {
+            int placed = props.size();
+            for (Map.Entry<String, JsonObject> entry : objects.entrySet()) {
+                String bone = entry.getKey();
+                JsonObject object = entry.getValue();
+                String parentBone = object.has("parent") ? GsonHelper.getAsString(object, "parent").toLowerCase(Locale.ROOT) : null;
+                if (parentBone != null && !objects.containsKey(parentBone)) {
+                    throw new IllegalArgumentException("Parent '" + parentBone + "' of prop '" + bone + "' is not in props");
+                }
+
+                if (indices.containsKey(bone) || (parentBone != null && !indices.containsKey(parentBone))) {
+                    continue;
+                }
+
+                if (parentBone != null && object.has("attach")) {
+                    throw new IllegalArgumentException("Prop '" + bone + "' has a parent, it takes the parent's attach");
+                }
+
+                int parent = parentBone == null ? -1 : indices.get(parentBone);
+                AnimatedProp.Attach attach = parent >= 0 ? props.get(parent).attach() : propAttach(bone, object);
+                Vec3 parentPivot = parent >= 0 ? pivots.get(parent) : attachPivot(attach);
+                Vec3 pivot = object.has("pivot") ? readPivot(object, bone) : parentPivot;
+                props.add(readProp(bone, object, attach, parent, pivot.subtract(parentPivot)));
+                pivots.add(pivot);
+                indices.put(bone, props.size() - 1);
+            }
+
+            if (props.size() == placed) {
+                throw new IllegalArgumentException("Props " + objects.keySet() + " are parents of each other in a loop");
+            }
+        }
+
+        return List.copyOf(props);
+    }
+
+    private static AnimatedProp readProp(String bone, JsonObject object, AnimatedProp.Attach attach, int parent, Vec3 pivot) {
+        AnimatedProp.Display display = object.has("display") ? display(GsonHelper.getAsString(object, "display"))
+                : AnimatedProp.Display.AUTO;
+        String item = GsonHelper.getAsString(object, "item", "held");
+        AnimatedProp.Source source = switch (item.trim().toLowerCase(Locale.ROOT)) {
+            case "held" -> attach == AnimatedProp.Attach.RIGHT_HAND ? AnimatedProp.Source.HELD_RIGHT
+                    : attach == AnimatedProp.Attach.LEFT_HAND ? AnimatedProp.Source.HELD_LEFT
+                    : AnimatedProp.Source.HELD_MAINHAND;
+            case "held_right" -> AnimatedProp.Source.HELD_RIGHT;
+            case "held_left" -> AnimatedProp.Source.HELD_LEFT;
+            case "held_mainhand" -> AnimatedProp.Source.HELD_MAINHAND;
+            case "held_offhand" -> AnimatedProp.Source.HELD_OFFHAND;
+            case "none" -> AnimatedProp.Source.NONE;
+            default -> AnimatedProp.Source.ITEM;
+        };
+        return new AnimatedProp(bone, source, source == AnimatedProp.Source.ITEM ? resolveItem(item) : null, attach, display,
+                parent, pivot);
+    }
+
+    private static AnimatedProp.Attach propAttach(String bone, JsonObject object) {
+        return object.has("attach") ? attach(GsonHelper.getAsString(object, "attach"))
+                : bone.contains("right") ? AnimatedProp.Attach.RIGHT_HAND
+                : bone.contains("left") ? AnimatedProp.Attach.LEFT_HAND
+                : bone.contains("head") ? AnimatedProp.Attach.HEAD
+                : bone.contains("body") || bone.contains("torso") ? AnimatedProp.Attach.BODY
+                : AnimatedProp.Attach.ROOT;
+    }
+
+    // Blockbench pivot of the attach point's bone in the templates, where a prop without a pivot rests
+    private static Vec3 attachPivot(AnimatedProp.Attach attach) {
+        return switch (attach) {
+            case RIGHT_HAND -> new Vec3(-6, 12, -2);
+            case LEFT_HAND -> new Vec3(6, 12, -2);
+            case BODY -> new Vec3(0, 18, 0);
+            case HEAD -> new Vec3(0, 28, 0);
+            case ROOT -> new Vec3(0, 8, 0);
+        };
+    }
+
+    // "pivot": [x, y, z] like Blockbench shows it
+    private static Vec3 readPivot(JsonObject object, String bone) {
+        JsonArray array = GsonHelper.getAsJsonArray(object, "pivot");
+        Vec3 pivot = array.size() == 3
+                ? new Vec3(array.get(0).getAsDouble(), array.get(1).getAsDouble(), array.get(2).getAsDouble())
+                : null;
+        if (pivot == null || !Double.isFinite(pivot.x) || !Double.isFinite(pivot.y) || !Double.isFinite(pivot.z)) {
+            throw new IllegalArgumentException("Pivot of prop '" + bone + "' must be [x, y, z]");
+        }
+
+        return pivot;
     }
 
     // prop whose bone no animation of the emote keys only ever sits at rest, mostly a typo in the bone name

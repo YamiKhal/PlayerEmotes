@@ -23,6 +23,7 @@ import net.minecraft.world.entity.player.PlayerModelPart;
 import net.minecraft.world.item.ItemDisplayContext;
 import net.minecraft.world.item.ItemStack;
 import org.jetbrains.annotations.Nullable;
+import java.util.List;
 //? if >=1.21.2
 /*import net.minecraft.client.renderer.item.ItemStackRenderState;*/
 //?}
@@ -111,14 +112,16 @@ public final class PreviewRenderer {
     private static void drawProps(Canvas canvas, PlayerModel<?> model, EmotePlayback.Frame frame, @Nullable AbstractClientPlayer player) {
         PoseStack pose = canvas.graphics.pose();
         Minecraft minecraft = Minecraft.getInstance();
-        for (AnimatedProp prop : EmoteProps.previewProps(frame)) {
+        List<AnimatedProp> props = EmoteProps.previewProps(frame);
+        for (int i = 0; i < props.size(); i++) {
+            AnimatedProp prop = props.get(i);
             ItemStack item = EmoteProps.previewStack(prop, player);
             if (item.isEmpty()) continue;
 
             ItemDisplayContext context = EmoteProps.context(prop, player);
             boolean left = context == ItemDisplayContext.THIRD_PERSON_LEFT_HAND;
             pose.pushPose();
-            if (EmoteProps.place(pose, model, frame, prop, model::translateToHand)) {
+            if (EmoteProps.place(pose, model, frame, props, i, model::translateToHand)) {
                 //? if >=1.21.2 {
                 /*minecraft.getItemModelResolver().updateForTopItem(PROP_ITEM, item, context, left, minecraft.level, player, 0);
                 canvas.graphics.drawSpecial(buffers -> PROP_ITEM.render(pose, buffers, LightTexture.FULL_BRIGHT, OverlayTexture.NO_OVERLAY));

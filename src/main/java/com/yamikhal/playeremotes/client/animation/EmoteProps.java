@@ -13,6 +13,7 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemDisplayContext;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Quaternionf;
 
@@ -57,6 +58,8 @@ public final class EmoteProps {
         }
 
         for (AnimatedProp animated : playback.options().props()) {
+            if (animated.source() == AnimatedProp.Source.NONE) continue;
+
             if (hand(animated.attach()) == arm || heldArm(entity, animated.source()) == arm) {
                 return ItemStack.EMPTY;
             }
@@ -79,6 +82,10 @@ public final class EmoteProps {
         }
 
         AnimatedProp prop = playback.options().props().get(index);
+        if (prop.source() == AnimatedProp.Source.NONE) {
+            return ItemStack.EMPTY;
+        }
+
         if (prop.isHeld()) {
             return heldArm(entity, prop.source()) == entity.getMainArm() ? entity.getMainHandItem() : entity.getOffhandItem();
         }
@@ -116,6 +123,10 @@ public final class EmoteProps {
 
     // item a preview shows, held items from the local player
     public static ItemStack previewStack(AnimatedProp prop, @Nullable LivingEntity player) {
+        if (prop.source() == AnimatedProp.Source.NONE) {
+            return ItemStack.EMPTY;
+        }
+
         if (!prop.isHeld()) {
             return PREVIEW_ITEMS.computeIfAbsent(prop.item(), EmoteProps::item);
         }
@@ -139,53 +150,16 @@ public final class EmoteProps {
         };
     }
 
-    // moves the pose stack (model space, as render layers get it) onto the prop's bone, false if scaled to nothing.
-    // toHand is the model's translateToHand. rest pose: on a hand where vanilla holds items, else the item model
-    // centered on the bone pivot (see the Blockbench templates)
-    public static boolean place(PoseStack poseStack, HumanoidModel<?> model, EmotePlayback.Frame frame, AnimatedProp prop,
-                                BiConsumer<HumanoidArm, PoseStack> toHand) {
-        frame.animation().sampleProp(prop.bone(), frame.seconds(), CONTEXT, BONE);
-        // hand props blend from the held item spot, the rest keep their pose, blending would slide them to their pivot
-        float weight = prop.attach().isHand() ? frame.weight() : 1;
-        float sx = (float) (1 + (BONE[6] - 1) * weight);
-        float sy = (float) (1 + (BONE[7] - 1) * weight);
-        float sz = (float) (1 + (BONE[8] - 1) * weight);
-        if (Math.abs(sx * sy * sz) < 1.0E-6F) {
+    // moves the pose stack (model space, as render layers get it) onto the bone of props[index], false if scaled to
+    // nothing. toHand is the model's translateToHand. rest pose: on a hand where vanilla holds items, else the item
+    // model centered on the bone pivot (see the Blockbench templates)
+    public static boolean place(PoseStack poseStack, HumanoidModel<?> model, EmotePlayback.Frame frame, List<AnimatedProp> props,
+                                int index, BiConsumer<HumanoidArm, PoseStack> toHand) {
+        AnimatedProp prop = props.get(index);
+        if (!placeBone(poseStack, model, frame, props, index, toHand)) {
             return false;
         }
 
-        // bone pivot, in pixels of the frame the bone hangs on
-        switch (prop.attach()) {
-            case RIGHT_HAND, LEFT_HAND -> {
-                HumanoidArm arm = hand(prop.attach());
-                toHand.accept(arm, poseStack);
-                // where ItemInHandLayer puts the item, before its own turn
-                poseStack.translate((arm == HumanoidArm.LEFT ? 1 : -1) / 16F, 10 / 16F, -2 / 16F);
-            }
-            case BODY -> {
-                model.body.translateAndRotate(poseStack);
-                poseStack.translate(0, 6 / 16F, 0);
-            }
-            case HEAD -> {
-                model.head.translateAndRotate(poseStack);
-                poseStack.translate(0, -4 / 16F, 0);
-            }
-            case ROOT -> {
-                EmoteRenderer.undoBody(poseStack, frame);
-                poseStack.translate(0, 16 / 16F, 0);
-            }
-        }
-
-        // same as a skeleton bone (see Pose): y flipped, rotation ZYX
-        poseStack.translate((float) (BONE[0] * weight / 16), (float) (-BONE[1] * weight / 16), (float) (BONE[2] * weight / 16));
-        float rx = (float) Math.toRadians(BONE[3] * weight);
-        float ry = (float) Math.toRadians(BONE[4] * weight);
-        float rz = (float) Math.toRadians(BONE[5] * weight);
-        if (rx != 0 || ry != 0 || rz != 0) {
-            rotate(poseStack, new Quaternionf().rotationZYX(rz, ry, rx));
-        }
-
-        poseStack.scale(sx, sy, sz);
         if (prop.attach().isHand()) {
             // ItemInHandLayer's turn, item points forward out of the fist
             rotate(poseStack, Axis.XP.rotationDegrees(-90));
@@ -198,13 +172,70 @@ public final class EmoteProps {
         return true;
     }
 
+    // parents first, each one moves onto its pivot and applies its animation
+    private static boolean placeBone(PoseStack poseStack, HumanoidModel<?> model, EmotePlayback.Frame frame, List<AnimatedProp> props,
+                                     int index, BiConsumer<HumanoidArm, PoseStack> toHand) {
+        AnimatedProp prop = props.get(index);
+        if (prop.parent() >= 0) {
+            if (!placeBone(poseStack, model, frame, props, prop.parent(), toHand)) {
+                return false;
+            }
+        } else {
+            // attach point, in pixels of the frame the bone hangs on
+            switch (prop.attach()) {
+                case RIGHT_HAND, LEFT_HAND -> {
+                    HumanoidArm arm = hand(prop.attach());
+                    toHand.accept(arm, poseStack);
+                    // where ItemInHandLayer puts the item, before its own turn
+                    poseStack.translate((arm == HumanoidArm.LEFT ? 1 : -1) / 16F, 10 / 16F, -2 / 16F);
+                }
+                case BODY -> {
+                    model.body.translateAndRotate(poseStack);
+                    poseStack.translate(0, 6 / 16F, 0);
+                }
+                case HEAD -> {
+                    model.head.translateAndRotate(poseStack);
+                    poseStack.translate(0, -4 / 16F, 0);
+                }
+                case ROOT -> {
+                    EmoteRenderer.undoBody(poseStack, frame);
+                    poseStack.translate(0, 16 / 16F, 0);
+                }
+            }
+        }
+
+        frame.animation().sampleProp(prop.bone(), frame.seconds(), CONTEXT, BONE);
+        // hand props blend from the held item spot, the rest keep their pose, blending would slide them to their pivot
+        float weight = prop.attach().isHand() ? frame.weight() : 1;
+        // same as a skeleton bone (see Pose): y flipped, rotation ZYX. pivot stays 0 unless pack.json nests props
+        Vec3 pivot = prop.pivot();
+        poseStack.translate((float) ((pivot.x + BONE[0] * weight) / 16), (float) ((-pivot.y - BONE[1] * weight) / 16),
+                (float) ((pivot.z + BONE[2] * weight) / 16));
+        float rx = (float) Math.toRadians(BONE[3] * weight);
+        float ry = (float) Math.toRadians(BONE[4] * weight);
+        float rz = (float) Math.toRadians(BONE[5] * weight);
+        if (rx != 0 || ry != 0 || rz != 0) {
+            rotate(poseStack, new Quaternionf().rotationZYX(rz, ry, rx));
+        }
+
+        float sx = (float) (1 + (BONE[6] - 1) * weight);
+        float sy = (float) (1 + (BONE[7] - 1) * weight);
+        float sz = (float) (1 + (BONE[8] - 1) * weight);
+        if (Math.abs(sx * sy * sz) < 1.0E-6F) {
+            return false;
+        }
+
+        poseStack.scale(sx, sy, sz);
+        return true;
+    }
+
     @Nullable
     private static EmotePlayback playback(LivingEntity entity) {
         return entity instanceof Player ? EmotePlayers.get(entity.getUUID()) : null;
     }
 
     private static AnimatedProp handProp(EmoteProp prop, AnimatedProp.Attach hand) {
-        return new AnimatedProp("", AnimatedProp.Source.ITEM, prop.item(), hand, AnimatedProp.Display.AUTO);
+        return new AnimatedProp("", AnimatedProp.Source.ITEM, prop.item(), hand, AnimatedProp.Display.AUTO, -1, Vec3.ZERO);
     }
 
     private static ItemStack item(ResourceLocation id) {
@@ -230,7 +261,7 @@ public final class EmoteProps {
     @Nullable
     private static HumanoidArm heldArm(LivingEntity entity, AnimatedProp.Source source) {
         return switch (source) {
-            case ITEM -> null;
+            case ITEM, NONE -> null;
             case HELD_RIGHT -> HumanoidArm.RIGHT;
             case HELD_LEFT -> HumanoidArm.LEFT;
             case HELD_MAINHAND -> entity.getMainArm();

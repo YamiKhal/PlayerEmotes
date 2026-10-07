@@ -61,7 +61,7 @@ public abstract class ItemInHandLayerMixin {
             if (item.isEmpty()) continue;
 
             poseStack.pushPose();
-            if (EmoteProps.place(poseStack, model, emote.playeremotes$frame(), props.get(i),
+            if (EmoteProps.place(poseStack, model, emote.playeremotes$frame(), props, i,
                     (arm, stack) -> ((ArmedModel) model).translateToHand(state, arm, stack))) {
                 item.submit(poseStack, collector, light, OverlayTexture.NO_OVERLAY, state.outlineColor);
             }
@@ -84,7 +84,7 @@ public abstract class ItemInHandLayerMixin {
             if (item.isEmpty()) continue;
 
             poseStack.pushPose();
-            if (EmoteProps.place(poseStack, model, emote.playeremotes$frame(), props.get(i), model::translateToHand)) {
+            if (EmoteProps.place(poseStack, model, emote.playeremotes$frame(), props, i, model::translateToHand)) {
                 item.render(poseStack, buffers, light, OverlayTexture.NO_OVERLAY);
             }
 
@@ -126,7 +126,7 @@ public abstract class ItemInHandLayerMixin {
 
             ItemDisplayContext context = EmoteProps.context(props.get(i), entity);
             poseStack.pushPose();
-            if (EmoteProps.place(poseStack, model, frame, props.get(i), model::translateToHand)) {
+            if (EmoteProps.place(poseStack, model, frame, props, i, model::translateToHand)) {
                 Minecraft.getInstance().getEntityRenderDispatcher().getItemInHandRenderer().renderItem(entity, item, context,
                         context == ItemDisplayContext.THIRD_PERSON_LEFT_HAND, poseStack, buffers, light);
             }
