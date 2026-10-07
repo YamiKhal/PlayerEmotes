@@ -103,7 +103,11 @@
       "look": false
     },
     "zelda_item_get": {
-      "look": false
+      "look": false,
+      "props": {
+        "item_right": "none",
+        "item_right_spin": { "parent": "item_right", "pivot": [-6, 12, -6] }
+      }
     },
     "fusion_dance": {
       "look": false,
