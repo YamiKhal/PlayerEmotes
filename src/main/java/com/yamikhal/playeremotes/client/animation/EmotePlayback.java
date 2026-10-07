@@ -1,6 +1,7 @@
 package com.yamikhal.playeremotes.client.animation;
 
 import com.yamikhal.playeremotes.anim.EmoteAnimation;
+import com.yamikhal.playeremotes.client.emote.ServerPackClient;
 import com.yamikhal.playeremotes.network.AnimatedProp;
 import com.yamikhal.playeremotes.network.EmoteNetwork;
 import com.yamikhal.playeremotes.network.EmoteProp;
@@ -97,11 +98,14 @@ public final class EmotePlayback {
         return this.isStopping() && now - this.stopTime >= this.options.blendOutTicks();
     }
 
-    // stops play once animations at their end
+    // stops play once animations at their end. an unknown animation may still come with the server's packs (someone
+    // already emoting when joining), it then shows up at the right point in time
     void update(float now) {
         EmoteAnimation animation = AnimationRegistry.get(this.animationId);
         if (animation == null) {
-            this.stop(now);
+            if (!ServerPackClient.isDownloading()) {
+                this.stop(now);
+            }
         } else if (!this.isStopping() && animation.isFinished((now - this.startTime) / 20.0)) {
             this.stop(this.startTime + (float) (animation.length() * 20));
         }

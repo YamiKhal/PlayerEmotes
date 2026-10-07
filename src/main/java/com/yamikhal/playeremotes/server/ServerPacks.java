@@ -30,8 +30,8 @@ public final class ServerPacks {
 
     // compressed bytes per player per tick (about 1.3 MB/s)
     private static final int BYTES_PER_TICK = 64 * 1024;
-    // pending data messages per player
-    private static final Map<UUID, Deque<byte[]>> QUEUES = new ConcurrentHashMap<>();
+    // files players still wait for
+    private static final Map<UUID, Download> QUEUES = new ConcurrentHashMap<>();
 
     private static volatile Snapshot snapshot = new Snapshot(0, List.of());
     private static volatile boolean changed;
@@ -87,27 +87,27 @@ public final class ServerPacks {
         }
     }
 
-    // queues the requested files of the current manifest
+    // queues the requested files of the current manifest, each once, replacing what the player still waited for.
+    // messages are made while sending, so a request costs no memory up front
     public static void request(ServerPlayer player, int generation, int[] indices) {
         Snapshot current = snapshot;
         if (generation != current.generation || !ServerConfig.get().sendServerPacks) {
             return;
         }
 
-        Deque<byte[]> queue = QUEUES.computeIfAbsent(player.getUUID(), id -> new ArrayDeque<>());
-        synchronized (queue) {
-            queue.clear();
-            for (int index : indices) {
-                if (index < 0 || index >= current.files.size()) continue;
+        Download download = new Download(current);
+        boolean[] queued = new boolean[current.files.size()];
+        for (int index : indices) {
+            if (index < 0 || index >= queued.length || queued[index]) continue;
 
-                byte[] data = current.files.get(index).compressed;
-                int chunks = Math.max(1, (data.length + EmoteNetwork.PACK_CHUNK_SIZE - 1) / EmoteNetwork.PACK_CHUNK_SIZE);
-                for (int chunk = 0; chunk < chunks; chunk++) {
-                    int offset = chunk * EmoteNetwork.PACK_CHUNK_SIZE;
-                    int length = Math.min(EmoteNetwork.PACK_CHUNK_SIZE, data.length - offset);
-                    queue.add(EmoteNetwork.packChunk(generation, index, chunk, chunks, data, offset, length));
-                }
-            }
+            queued[index] = true;
+            download.files.add(index);
+        }
+
+        if (download.files.isEmpty()) {
+            QUEUES.remove(player.getUUID());
+        } else {
+            QUEUES.put(player.getUUID(), download);
         }
     }
 
@@ -136,17 +136,24 @@ public final class ServerPacks {
                 return true;
             }
 
-            Deque<byte[]> queue = entry.getValue();
-            synchronized (queue) {
-                int budget = BYTES_PER_TICK;
-                while (budget > 0 && !queue.isEmpty()) {
-                    byte[] message = queue.poll();
-                    PlayerEmotes.platform().sendToPlayer(player, message);
-                    budget -= message.length;
+            Download download = entry.getValue();
+            int budget = BYTES_PER_TICK;
+            while (budget > 0 && !download.files.isEmpty()) {
+                int index = download.files.peek();
+                byte[] data = download.snapshot.files.get(index).compressed;
+                int chunks = Math.max(1, (data.length + EmoteNetwork.PACK_CHUNK_SIZE - 1) / EmoteNetwork.PACK_CHUNK_SIZE);
+                int offset = download.chunk * EmoteNetwork.PACK_CHUNK_SIZE;
+                int length = Math.min(EmoteNetwork.PACK_CHUNK_SIZE, data.length - offset);
+                byte[] message = EmoteNetwork.packChunk(download.snapshot.generation, index, download.chunk, chunks, data, offset, length);
+                PlayerEmotes.platform().sendToPlayer(player, message);
+                budget -= message.length;
+                if (++download.chunk == chunks) {
+                    download.files.poll();
+                    download.chunk = 0;
                 }
-
-                return queue.isEmpty();
             }
+
+            return download.files.isEmpty();
         });
     }
 
@@ -192,4 +199,16 @@ public final class ServerPacks {
     private record PackFile(EmoteNetwork.PackEntry entry, byte[] compressed) {}
 
     private record Snapshot(int generation, List<PackFile> files) {}
+
+    // files of one manifest a player waits for, and the next chunk of the first one
+    private static final class Download {
+
+        final Snapshot snapshot;
+        final Deque<Integer> files = new ArrayDeque<>();
+        int chunk;
+
+        Download(Snapshot snapshot) {
+            this.snapshot = snapshot;
+        }
+    }
 }

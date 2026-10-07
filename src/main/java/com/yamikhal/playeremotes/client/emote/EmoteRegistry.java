@@ -435,7 +435,8 @@ public final class EmoteRegistry {
     }
 
     // only for packs that use them: "parent": "<bone>" hangs a prop on another one and takes its attach, "pivot" is
-    // the bone's Blockbench pivot, default the parent's or the attach point's. parents go first in the list
+    // the bone's Blockbench pivot, default the parent's or the attach point's. a top prop rests on it, a nested one
+    // only turns around it like in Blockbench. parents go first in the list
     private static List<AnimatedProp> readNestedProps(List<Map.Entry<String, JsonObject>> entries) {
         // bone names ignore case, so two keys can be the same bone
         Map<String, JsonObject> objects = new LinkedHashMap<>();
@@ -446,7 +447,9 @@ public final class EmoteRegistry {
         }
 
         List<AnimatedProp> props = new ArrayList<>();
+        // Blockbench pivots, and where the top prop of each chain rests
         List<Vec3> pivots = new ArrayList<>();
+        List<Vec3> rests = new ArrayList<>();
         Map<String, Integer> indices = new HashMap<>();
         while (props.size() < objects.size()) {
             int placed = props.size();
@@ -468,10 +471,12 @@ public final class EmoteRegistry {
 
                 int parent = parentBone == null ? -1 : indices.get(parentBone);
                 AnimatedProp.Attach attach = parent >= 0 ? props.get(parent).attach() : propAttach(bone, object);
-                Vec3 parentPivot = parent >= 0 ? pivots.get(parent) : attachPivot(attach);
-                Vec3 pivot = object.has("pivot") ? readPivot(object, bone) : parentPivot;
-                props.add(readProp(bone, object, attach, parent, pivot.subtract(parentPivot)));
+                Vec3 pivot = object.has("pivot") ? readPivot(object, bone) : parent >= 0 ? pivots.get(parent) : attachPivot(attach);
+                // a top prop rests on its pivot, a nested one turns around it
+                Vec3 rest = parent >= 0 ? rests.get(parent) : pivot;
+                props.add(readProp(bone, object, attach, parent, pivot.subtract(parent >= 0 ? rest : attachPivot(attach))));
                 pivots.add(pivot);
+                rests.add(rest);
                 indices.put(bone, props.size() - 1);
             }
 

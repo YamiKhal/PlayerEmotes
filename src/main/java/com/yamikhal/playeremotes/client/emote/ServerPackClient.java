@@ -16,10 +16,12 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.HexFormat;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Consumer;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
@@ -38,7 +40,10 @@ public final class ServerPackClient {
 
     private static int generation = -1;
     private static List<EmoteNetwork.PackEntry> entries = List.of();
-    private static int missing;
+    // files not in the cache that did not arrive yet
+    private static final Set<Integer> MISSING = new HashSet<>();
+    // whether MISSING got asked for (a replay cannot ask)
+    private static boolean requested;
     // server files merged into the emote registry right now, by path
     private static Map<String, byte[]> active = Map.of();
     // manifest these came from, to record it again (see FlashbackCompat)
@@ -56,7 +61,8 @@ public final class ServerPackClient {
         List<EmoteNetwork.PackEntry> valid = new ArrayList<>();
         long total = 0;
         for (EmoteNetwork.PackEntry entry : manifest.entries()) {
-            total += entry.size();
+            // negative sizes must not lower the total
+            total += Math.max(0, entry.size());
             if (!VALID_PATH.matcher(entry.path()).matches() || entry.size() < 0 || entry.size() > EmoteNetwork.MAX_PACK_FILE_SIZE
                     || total > EmoteNetwork.MAX_PACK_TOTAL_SIZE) {
                 PlayerEmotes.LOGGER.warn("Ignoring invalid server emote file {}", entry.path());
@@ -68,27 +74,27 @@ public final class ServerPackClient {
 
         entries = valid;
 
-        List<Integer> wanted = new ArrayList<>();
+        MISSING.clear();
         for (int index = 0; index < entries.size(); index++) {
             EmoteNetwork.PackEntry entry = entries.get(index);
             if (entry != null && readCached(entry) == null) {
-                wanted.add(index);
+                MISSING.add(index);
             }
         }
 
-        missing = wanted.size();
-        if (missing == 0 || !canRequest) {
+        requested = canRequest && !MISSING.isEmpty();
+        if (!requested) {
             apply();
+            return;
         }
 
-        if (missing > 0 && canRequest) {
-            PlayerEmotes.LOGGER.info("Downloading {} of {} server emote files", missing, entries.size());
-            send.accept(EmoteNetwork.packsRequest(generation, wanted.stream().mapToInt(Integer::intValue).toArray()));
-        }
+        PlayerEmotes.LOGGER.info("Downloading {} of {} server emote files", MISSING.size(), entries.size());
+        send.accept(EmoteNetwork.packsRequest(generation, MISSING.stream().mapToInt(Integer::intValue).toArray()));
     }
 
     public static void onChunk(EmoteNetwork.PackChunk chunk) {
-        if (chunk.generation() != generation || chunk.index() < 0 || chunk.index() >= entries.size()) {
+        // only files still missing, each once, so the count stays right
+        if (chunk.generation() != generation || !MISSING.contains(chunk.index())) {
             return;
         }
 
@@ -120,9 +126,15 @@ public final class ServerPackClient {
             writeCached(entry, data);
         }
 
-        if (--missing == 0) {
+        MISSING.remove(chunk.index());
+        if (MISSING.isEmpty()) {
             apply();
         }
+    }
+
+    // whether files of the server's packs are still on their way, their emotes may not be loaded yet
+    public static boolean isDownloading() {
+        return requested && !MISSING.isEmpty();
     }
 
     // server's current manifest, null if it sent none
@@ -138,7 +150,8 @@ public final class ServerPackClient {
         generation = -1;
         entries = List.of();
         PENDING.clear();
-        missing = 0;
+        MISSING.clear();
+        requested = false;
         active = Map.of();
         if (had) {
             EmoteRegistry.reload(Minecraft.getInstance().getResourceManager());

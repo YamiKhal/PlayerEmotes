@@ -207,7 +207,8 @@ public final class EmoteProps {
         frame.animation().sampleProp(prop.bone(), frame.seconds(), CONTEXT, BONE);
         // hand props blend from the held item spot, the rest keep their pose, blending would slide them to their pivot
         float weight = prop.attach().isHand() ? frame.weight() : 1;
-        // same as a skeleton bone (see Pose): y flipped, rotation ZYX. pivot stays 0 unless pack.json nests props
+        // same as a skeleton bone (see Pose): y flipped, rotation ZYX. pivot stays 0 unless pack.json nests props, a
+        // top prop rests on it, a nested one only turns around it (its item stays where the top prop rests)
         Vec3 pivot = prop.pivot();
         poseStack.translate((float) ((pivot.x + BONE[0] * weight) / 16), (float) ((-pivot.y - BONE[1] * weight) / 16),
                 (float) ((pivot.z + BONE[2] * weight) / 16));
@@ -226,6 +227,10 @@ public final class EmoteProps {
         }
 
         poseStack.scale(sx, sy, sz);
+        if (prop.parent() >= 0) {
+            poseStack.translate((float) (-pivot.x / 16), (float) (pivot.y / 16), (float) (-pivot.z / 16));
+        }
+
         return true;
     }
 

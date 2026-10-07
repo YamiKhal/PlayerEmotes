@@ -48,9 +48,16 @@ public final class Channel {
             return;
         }
 
+        // last keyframe at or before time, baked animations have hundreds so no linear scan
         int i = 0;
-        while (this.frames[i + 1].time <= time) {
-            i++;
+        int high = this.frames.length - 2;
+        while (i < high) {
+            int middle = (i + high + 1) >>> 1;
+            if (this.frames[middle].time <= time) {
+                i = middle;
+            } else {
+                high = middle - 1;
+            }
         }
 
         Keyframe a = this.frames[i];

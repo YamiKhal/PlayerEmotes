@@ -147,8 +147,8 @@ public final class EmotePlayers {
             ticks++;
         }
 
-        // server relays emotes to the whole dimension, forget the ones of players this client never loads (or no longer
-        // has), server replays them once the player comes into view
+        // server relays emotes to everyone within view distance, forget the ones of players this client never loads (or
+        // no longer has), server replays them once the player comes into view
         boolean prune = ticks % 20 == 0 && minecraft.level != null;
         Iterator<Map.Entry<UUID, EmotePlayback>> iterator = PLAYING.entrySet().iterator();
         while (iterator.hasNext()) {

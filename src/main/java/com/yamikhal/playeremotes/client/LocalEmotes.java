@@ -1,6 +1,7 @@
 package com.yamikhal.playeremotes.client;
 
 import com.yamikhal.playeremotes.PlayerEmotes;
+import com.yamikhal.playeremotes.client.animation.AnimationRegistry;
 import com.yamikhal.playeremotes.client.animation.EmotePlayback;
 import com.yamikhal.playeremotes.client.animation.EmotePlayers;
 import com.yamikhal.playeremotes.client.animation.EmoteSoundInstance;
@@ -166,10 +167,11 @@ final class LocalEmotes {
         PlayerEmotesClient.send(EmoteNetwork.hello(PlayerEmotesClient.config().acceptRequests));
     }
 
-    // whether syncWith can join the other player's emote
+    // whether syncWith can join the other player's emote, not one this client cannot show (yet)
     static boolean canSyncWith(UUID other) {
         EmotePlayback playback = EmotePlayers.get(other);
-        return rules.sync() && playback != null && !playback.isStopping() && playback.link() == null;
+        return rules.sync() && playback != null && !playback.isStopping() && playback.link() == null
+                && AnimationRegistry.get(playback.animationId()) != null;
     }
 
     // joins the emote another player plays, at the same point in it
@@ -177,7 +179,8 @@ final class LocalEmotes {
         Minecraft minecraft = Minecraft.getInstance();
         LocalPlayer player = minecraft.player;
         EmotePlayback target = EmotePlayers.get(other);
-        if (player == null || target == null || target.isStopping() || EmotePlayers.inReplay() || !checkCooldown()) {
+        if (player == null || target == null || target.isStopping() || AnimationRegistry.get(target.animationId()) == null
+                || EmotePlayers.inReplay() || !checkCooldown()) {
             return;
         }
 

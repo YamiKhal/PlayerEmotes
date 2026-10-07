@@ -57,7 +57,7 @@ public final class EmoteTracker {
 
     public static void play(ServerPlayer player, int sequence, ResourceLocation emote, ResourceLocation animation,
                             EmoteNetwork.Options options) {
-        Denial denial = check(player, emote);
+        Denial denial = check(player, emote, animation);
         if (denial == null) {
             denial = checkCooldown(player);
         }
@@ -84,7 +84,7 @@ public final class EmoteTracker {
                 || targetPlayer.distanceToSqr(player) > viewDistanceSqr(player)) {
             denial = Denial.SYNC_FAILED;
         } else {
-            denial = check(player, running.emote);
+            denial = check(player, running.emote, running.animation);
         }
 
         if (denial == null) {
@@ -158,22 +158,29 @@ public final class EmoteTracker {
         }
     }
 
-    // why the player may not play the emote, null if they may
-    static Denial check(ServerPlayer player, ResourceLocation emote) {
+    // why the player may not play the emote, null if they may. the animations it plays count too, the client names
+    // both, so an allowed emote's name cannot carry a disabled or restricted emote's animation
+    static Denial check(ServerPlayer player, ResourceLocation emote, ResourceLocation... animations) {
         ServerConfig config = ServerConfig.get();
         if (!config.enabled) {
             return Denial.DISABLED;
         }
 
-        if (!EmotePermissions.has(player, EmotePermissions.Node.USE) || config.isDisabled(emote)) {
+        if (!EmotePermissions.has(player, EmotePermissions.Node.USE) || !allowed(player, config, emote)) {
             return Denial.NOT_ALLOWED;
         }
 
-        if (config.isRestricted(emote) && !EmotePermissions.has(player, EmotePermissions.Node.RESTRICTED)) {
-            return Denial.NOT_ALLOWED;
+        for (ResourceLocation animation : animations) {
+            if (!animation.equals(emote) && !allowed(player, config, animation)) {
+                return Denial.NOT_ALLOWED;
+            }
         }
 
         return null;
+    }
+
+    private static boolean allowed(ServerPlayer player, ServerConfig config, ResourceLocation id) {
+        return !config.isDisabled(id) && (!config.isRestricted(id) || EmotePermissions.has(player, EmotePermissions.Node.RESTRICTED));
     }
 
     static Denial checkCooldown(ServerPlayer player) {
@@ -210,12 +217,17 @@ public final class EmoteTracker {
         return blocks * blocks;
     }
 
-    private static void broadcast(ServerPlayer source, byte[] message) {
-        // everyone in the dimension, clients without the player loaded ignore it and get a replay through onStartTracking
-        // once the player comes into view. source gets it too, its client already plays the emote and ignores it, but
-        // replay mods record what arrives, so this puts the player's own emotes into recordings
+    // players that may have source loaded: entity tracking never reaches past the view distance, players further away
+    // get a replay through onStartTracking once source comes into view. source gets it too, its client already plays
+    // the emote and ignores it, but replay mods record what arrives, so this puts the player's own emotes into recordings
+    static void broadcast(ServerPlayer source, byte[] message) {
+        double range = viewDistanceSqr(source);
         for (ServerPlayer receiver : level(source).players()) {
-            send(receiver, message);
+            double dx = receiver.getX() - source.getX();
+            double dz = receiver.getZ() - source.getZ();
+            if (receiver == source || dx * dx + dz * dz <= range) {
+                send(receiver, message);
+            }
         }
     }
 

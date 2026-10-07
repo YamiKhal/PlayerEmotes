@@ -12,8 +12,8 @@ import java.util.Locale;
 // item moved by its own bone of the animation (sword thrown up, chair to sit on). bone is the Blockbench bone name,
 // item the item to show for ITEM, otherwise the one the player holds (source). attach is what the bone hangs on,
 // display how the item model is drawn. parent is the index of the prop it hangs on (before it in the list, -1 for
-// none), a child has its parent's attach. pivot is the bone's pivot relative to the parent's (or the attach point's),
-// Blockbench pixels
+// none), a child has its parent's attach. pivot in Blockbench pixels: where a top prop rests relative to the attach
+// point, what a nested one turns around relative to where its top prop rests
 public record AnimatedProp(String bone, Source source, @Nullable ResourceLocation item, Attach attach, Display display,
                            int parent, Vec3 pivot) {
 

@@ -49,7 +49,9 @@ public final class PartnerEmotes {
 
     public static void start(ServerPlayer player, int sequence, ResourceLocation emote, PartnerSpec spec,
                              EmoteNetwork.Options options, String name) {
-        EmoteNetwork.Denial denial = allowed(player) ? EmoteTracker.check(player, emote) : EmoteNetwork.Denial.NOT_ALLOWED;
+        EmoteNetwork.Denial denial = allowed(player)
+                ? EmoteTracker.check(player, emote, spec.intro(), spec.action(), spec.partnerAction())
+                : EmoteNetwork.Denial.NOT_ALLOWED;
         if (denial == null) {
             denial = EmoteTracker.checkCooldown(player);
         }
@@ -112,7 +114,7 @@ public final class PartnerEmotes {
 
         if (chosen != null) {
             ServerPlayer starter = player(player, chosen.starter);
-            if (EmoteTracker.check(player, chosen.emote) != null) {
+            if (EmoteTracker.check(player, chosen.emote, chosen.spec.partnerAction()) != null) {
                 status(player, StatusCode.NOT_ALLOWED, "");
             } else if (starter != null) {
                 join(chosen, starter, player);
@@ -246,10 +248,8 @@ public final class PartnerEmotes {
         ACTIVE.put(partner.getUUID(), partnership);
         EmoteTracker.startRunning(starter, waiting.emote, waiting.spec.action(), waiting.options, now, play.id());
         EmoteTracker.startRunning(partner, waiting.emote, waiting.spec.partnerAction(), waiting.options, now, play.id());
-        byte[] message = EmoteNetwork.partnerPlay(play);
-        for (ServerPlayer receiver : level(starter).players()) {
-            send(receiver, message);
-        }
+        // partner stands next to starter, so whoever may see one of the two is in range of starter
+        EmoteTracker.broadcast(starter, EmoteNetwork.partnerPlay(play));
     }
 
     private static void end(MinecraftServer server, Partnership partnership) {
