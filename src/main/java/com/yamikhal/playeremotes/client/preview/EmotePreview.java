@@ -3,6 +3,7 @@ package com.yamikhal.playeremotes.client.preview;
 import com.yamikhal.playeremotes.anim.EmoteAnimation;
 import com.yamikhal.playeremotes.client.animation.AnimationRegistry;
 import com.yamikhal.playeremotes.client.animation.EmotePlayback;
+import com.yamikhal.playeremotes.client.animation.EmoteQueries;
 import com.yamikhal.playeremotes.client.emote.Emote;
 import net.minecraft.resources.ResourceLocation;
 import org.jetbrains.annotations.Nullable;
@@ -51,7 +52,8 @@ public final class EmotePreview {
     }
 
     private static EmotePlayback.Frame frame(Emote emote, EmoteAnimation animation, double seconds) {
-        return new EmotePlayback.Frame(animation, seconds, 1, emote.look(), emote.splitLimbs(), null, emote.prop(), emote.props());
+        return new EmotePlayback.Frame(animation, seconds, 1, emote.look(), emote.splitLimbs(), null, emote.prop(), emote.props(),
+                EmoteQueries.LOCAL);
     }
 
     @Nullable

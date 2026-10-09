@@ -1,6 +1,8 @@
 package com.yamikhal.playeremotes.client.animation;
 
 import com.yamikhal.playeremotes.anim.EmoteAnimation;
+import com.yamikhal.playeremotes.anim.Pose;
+import com.yamikhal.playeremotes.anim.Query;
 import com.yamikhal.playeremotes.client.emote.ServerPackClient;
 import com.yamikhal.playeremotes.network.AnimatedProp;
 import com.yamikhal.playeremotes.network.EmoteNetwork;
@@ -31,6 +33,8 @@ public final class EmotePlayback {
     // where the emote faces (Minecraft yaw degrees), the head's facing when it started, NaN until the player is seen
     // (see EmotePlayers#face)
     float yaw = Float.NaN;
+    // answers the animation's query.* keyframes
+    final EmoteQueries queries = new EmoteQueries();
     // seconds into the emote its effect keyframes were played up to, NaN before the first tick
     double effectTime = Double.NaN;
     // made on first use (see EmoteProps)
@@ -134,7 +138,7 @@ public final class EmotePlayback {
         }
 
         return new Frame(animation, elapsed / 20.0, weight, this.options.look(), this.options.splitLimbs(), this.link,
-                this.options.prop(), this.options.props());
+                this.options.prop(), this.options.props(), this.queries);
     }
 
     // blend from vanilla (0) to the emote (1)
@@ -163,10 +167,26 @@ public final class EmotePlayback {
     // everything to pose a player for one frame, link is where a partner emote draws the player, prop and props the
     // emote's items (previews draw them from here, players through EmoteProps)
     public record Frame(EmoteAnimation animation, double seconds, float weight, boolean look, boolean splitLimbs,
-                        @Nullable PartnerLink link, @Nullable EmoteProp prop, List<AnimatedProp> props) {
+                        @Nullable PartnerLink link, @Nullable EmoteProp prop, List<AnimatedProp> props, Query.Source queries) {
 
         public Frame(EmoteAnimation animation, double seconds, float weight, boolean look, boolean splitLimbs) {
-            this(animation, seconds, weight, look, splitLimbs, null, null, List.of());
+            this(animation, seconds, weight, look, splitLimbs, null, null, List.of(), EmoteQueries.LOCAL);
+        }
+
+        // evaluates the animation at this frame into pose. poses are shared statics, queries let go after so they
+        // don't keep a player of a left world
+        public void sample(Pose pose) {
+            pose.setQueries(this.queries);
+            this.animation.sample(this.seconds, pose);
+            pose.setQueries(null);
+        }
+
+        // prop bone at this frame, see EmoteAnimation#sampleProp
+        public boolean sampleProp(String bone, Pose pose, double[] out) {
+            pose.setQueries(this.queries);
+            boolean found = this.animation.sampleProp(bone, this.seconds, pose, out);
+            pose.setQueries(null);
+            return found;
         }
     }
 }

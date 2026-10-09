@@ -14,6 +14,7 @@ public final class Molang {
     // well below a stack overflow
     private static final int MAX_LENGTH = 1024;
     private static final int MAX_DEPTH = 64;
+    private static final int MAX_DIE_ROLLS = 64;
 
     private Molang() {}
 
@@ -39,6 +40,11 @@ public final class Molang {
 
         // seconds since the emote started, never wrapped (query.life_time)
         double lifeTime();
+
+        // player state (see Query), 0 without a player
+        default double query(Query query) {
+            return 0;
+        }
 
         // any other lookup like variable.foo, unknown names return 0
         default double lookup(String name) {
@@ -349,11 +355,20 @@ public final class Molang {
                 case "math.random" -> this.fn2(a, (lo, hi) -> lo + ThreadLocalRandom.current().nextDouble() * (hi - lo));
                 case "math.random_integer" -> this.fn2(a, (lo, hi) ->
                         (double) (long) (lo + Math.floor(ThreadLocalRandom.current().nextDouble() * (hi - lo + 1))));
+                case "math.min_angle" -> this.fn1(a, Parser::wrapDegrees);
+                case "math.die_roll" -> this.fn3(a, (n, lo, hi) -> dieRoll(n, lo, hi, false));
+                case "math.die_roll_integer" -> this.fn3(a, (n, lo, hi) -> dieRoll(n, lo, hi, true));
                 default -> {
-                    if (!a.isEmpty() || name.startsWith("math.")) {
+                    if (name.startsWith("math.")) {
                         throw this.error("Unknown function '" + name + "'");
                     }
 
+                    Query query = Query.byName(name);
+                    if (query != null) {
+                        yield c -> c.query(query);
+                    }
+
+                    // custom queries of other mods (AzureLib query.my_charge(1)) take arguments, unknown means 0
                     yield c -> c.lookup(name);
                 }
             };
@@ -473,6 +488,18 @@ public final class Molang {
             }
 
             return name;
+        }
+
+        // sum of count random numbers between low and high, count capped since files also come from servers
+        private static double dieRoll(double count, double low, double high, boolean integer) {
+            int rolls = (int) Math.max(0, Math.min(MAX_DIE_ROLLS, count));
+            double sum = 0;
+            for (int i = 0; i < rolls; i++) {
+                double roll = ThreadLocalRandom.current().nextDouble();
+                sum += integer ? Math.ceil(low) + Math.floor(roll * (Math.floor(high) - Math.ceil(low) + 1)) : low + roll * (high - low);
+            }
+
+            return sum;
         }
 
         private static double wrapDegrees(double d) {

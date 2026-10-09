@@ -79,16 +79,46 @@ public enum Part {
         };
     }
 
-    // resolves bone names (right_arm, rightArm, RightArm), null outside the skeleton
+    // resolves bone names (right_arm, rightArm, RightArm), null outside the skeleton. also takes the names of
+    // AzureLib / GeckoLib humanoid and armor rigs (bipedHead, armorRightArm, arm_right), there body means the torso
     public static Part byBoneName(String bone) {
-        return switch (bone.toLowerCase(Locale.ROOT).replace("_", "")) {
+        String key = key(bone);
+        Part part = byKey(key);
+        if (part != null) {
+            return part;
+        }
+
+        for (String prefix : RIG_PREFIXES) {
+            if (key.startsWith(prefix) && key.length() > prefix.length()) {
+                String rest = key.substring(prefix.length());
+                return rest.equals("body") ? TORSO : byKey(rest);
+            }
+        }
+
+        return null;
+    }
+
+    // whether the bone name is one of ours and not a rig alias, ours win when an animation has both
+    public static boolean isOwnBoneName(String bone) {
+        return byKey(key(bone)) != null;
+    }
+
+    // humanoid rig prefixes, longest first
+    private static final String[] RIG_PREFIXES = {"armorbiped", "biped", "armor"};
+
+    private static String key(String bone) {
+        return bone.toLowerCase(Locale.ROOT).replace("_", "").replace("-", "").replace(".", "").replace(" ", "");
+    }
+
+    private static Part byKey(String key) {
+        return switch (key) {
             case "body", "root" -> BODY;
             case "torso" -> TORSO;
             case "head" -> HEAD;
-            case "rightarm" -> RIGHT_ARM;
-            case "leftarm" -> LEFT_ARM;
-            case "rightleg" -> RIGHT_LEG;
-            case "leftleg" -> LEFT_LEG;
+            case "rightarm", "armright" -> RIGHT_ARM;
+            case "leftarm", "armleft" -> LEFT_ARM;
+            case "rightleg", "legright" -> RIGHT_LEG;
+            case "leftleg", "legleft" -> LEFT_LEG;
             case "rightlowerarm", "rightforearm" -> RIGHT_LOWER_ARM;
             case "leftlowerarm", "leftforearm" -> LEFT_LOWER_ARM;
             case "rightlowerleg", "rightshin" -> RIGHT_LOWER_LEG;

@@ -5,20 +5,24 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
 import com.google.gson.JsonPrimitive;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.EnumMap;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 
 // reads Bedrock animation files from Blockbench (*.animation.json): animation_length, loop (true, false,
 // "hold_on_last_frame"), rotation/position as constants or keyframes, pre/post, lerp_mode (linear, catmullrom,
-// step), GeckoLib easing/easingArgs, Molang values and sound_effects / particle_effects keyframes. bones outside the
-// skeleton are kept as prop bones (rotation, position and scale), scale of skeleton bones is skipped
+// step), GeckoLib / AzureLib easing/easingArgs, Molang values and sound_effects / particle_effects keyframes. bones
+// outside the skeleton are kept as prop bones (rotation, position and scale), scale of skeleton bones is skipped.
+// AzureLib "timeline" instruction keyframes only mean something to the mod that made them, skipped
 public final class AnimationParser {
 
     private static final Molang.Expr ZERO = Molang.constant(0);
@@ -27,29 +31,57 @@ public final class AnimationParser {
 
     private AnimationParser() {}
 
-    // animations by lower case name
+    // animations by lower case name, throws if one is broken
     public static Map<String, EmoteAnimation> parse(JsonObject root) {
+        return parse(root, null);
+    }
+
+    // animations by lower case name. with errors given, broken animations get skipped and their errors added, the
+    // rest of the file still loads (AzureLib files hold all animations of a model, one bad one should not cost all).
+    // a file with only "includes" (AzureLib) has no animations of its own
+    public static Map<String, EmoteAnimation> parse(JsonObject root, @Nullable List<String> errors) {
         JsonElement animations = root.get("animations");
+        if (animations == null && root.has("includes")) {
+            return new LinkedHashMap<>();
+        }
+
         if (animations == null || !animations.isJsonObject()) {
             throw new JsonParseException("Not a Bedrock animation file (missing \"animations\")");
         }
 
         Map<String, EmoteAnimation> result = new LinkedHashMap<>();
         for (Map.Entry<String, JsonElement> entry : animations.getAsJsonObject().entrySet()) {
-            String name = entry.getKey().toLowerCase(Locale.ROOT);
-            // Blockbench names them "animation.model.name", so the last segment works too
-            if (name.startsWith("animation.")) {
-                name = name.substring(name.lastIndexOf('.') + 1);
-            }
-
+            String name = animationName(entry.getKey());
             try {
                 result.put(name, parseAnimation(name, entry.getValue().getAsJsonObject()));
             } catch (RuntimeException e) {
-                throw new JsonParseException("Invalid animation '" + entry.getKey() + "': " + e.getMessage(), e);
+                String error = "Invalid animation '" + entry.getKey() + "': " + e.getMessage();
+                if (errors == null) {
+                    throw new JsonParseException(error, e);
+                }
+
+                errors.add(error);
             }
         }
 
         return result;
+    }
+
+    // file key to animation name: lower case, Blockbench's "animation.model.name" to its last segment, characters
+    // ids can't have (AzureLib names like "Attack 1") to _
+    public static String animationName(String key) {
+        String name = key.toLowerCase(Locale.ROOT);
+        if (name.startsWith("animation.")) {
+            name = name.substring(name.lastIndexOf('.') + 1);
+        }
+
+        StringBuilder result = new StringBuilder(name.length());
+        for (int i = 0; i < name.length(); i++) {
+            char c = name.charAt(i);
+            result.append((c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || c == '_' || c == '-' || c == '.' ? c : '_');
+        }
+
+        return result.toString();
     }
 
     private static EmoteAnimation parseAnimation(String name, JsonObject node) {
@@ -58,16 +90,27 @@ public final class AnimationParser {
         double lastKeyframe = 0;
         JsonElement bonesNode = node.get("bones");
         if (bonesNode != null) {
+            // parts set by a rig alias (bipedHead), our own name (head) replaces them
+            Set<Part> aliased = EnumSet.noneOf(Part.class);
             for (Map.Entry<String, JsonElement> bone : bonesNode.getAsJsonObject().entrySet()) {
                 Part part = Part.byBoneName(bone.getKey());
                 Channel[] channels;
                 if (part != null) {
+                    boolean alias = !Part.isOwnBoneName(bone.getKey());
+                    if (bones.containsKey(part) && (alias || !aliased.contains(part))) continue;
+
                     JsonObject boneNode = bone.getValue().getAsJsonObject();
                     Channel rotation = readChannel(boneNode.get("rotation"));
                     Channel position = readChannel(boneNode.get("position"));
                     if (rotation == null && position == null) continue;
 
                     bones.put(part, new EmoteAnimation.Bone(rotation, position));
+                    if (alias) {
+                        aliased.add(part);
+                    } else {
+                        aliased.remove(part);
+                    }
+
                     channels = new Channel[]{rotation, position};
                 } else {
                     EmoteAnimation.PropBone prop = readPropBone(bone.getValue());
@@ -216,7 +259,10 @@ public final class AnimationParser {
         if (node.has("easing")) {
             String name = node.get("easing").getAsString();
             easing = Ease.byName(name);
-            if (easing == null) {
+            // GeckoLib and AzureLib also take the lerp modes as easing
+            if (easing == null && name.equalsIgnoreCase("catmullrom")) {
+                lerp = Channel.Lerp.CATMULLROM;
+            } else if (easing == null) {
                 throw new JsonParseException("unknown easing '" + name + "'");
             }
 

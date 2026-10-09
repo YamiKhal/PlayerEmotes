@@ -204,7 +204,7 @@ public final class EmoteProps {
             }
         }
 
-        frame.animation().sampleProp(prop.bone(), frame.seconds(), CONTEXT, BONE);
+        frame.sampleProp(prop.bone(), CONTEXT, BONE);
         // hand props blend from the held item spot, the rest keep their pose, blending would slide them to their pivot
         float weight = prop.attach().isHand() ? frame.weight() : 1;
         // same as a skeleton bone (see Pose): y flipped, rotation ZYX. pivot stays 0 unless pack.json nests props, a

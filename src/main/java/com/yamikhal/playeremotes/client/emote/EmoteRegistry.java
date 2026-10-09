@@ -68,6 +68,8 @@ import java.util.concurrent.ThreadLocalRandom;
 //   }
 // }
 //
+// animation files may pull animations from other files with AzureLib "includes", see AnimationIncludes
+//
 // emote names and descriptions from lang keys emote.<namespace>.<name> and emote.<namespace>.<name>.description,
 // pack names from emote_pack.<pack>
 public final class EmoteRegistry {
@@ -148,6 +150,9 @@ public final class EmoteRegistry {
             }
         }
 
+        AnimationIncludes includes = new AnimationIncludes(files, manager);
+        // files with includes and their pack, resolved once all files are read
+        Map<ResourceLocation, Source> including = new LinkedHashMap<>();
         for (Map.Entry<ResourceLocation, FileSource> file : files.entrySet()) {
             ResourceLocation fileId = file.getKey();
             String relative = fileId.getPath().substring(DIRECTORY.length() + 1);
@@ -164,7 +169,15 @@ public final class EmoteRegistry {
                     continue;
                 }
 
-                for (Map.Entry<String, EmoteAnimation> entry : AnimationParser.parse(json).entrySet()) {
+                List<String> errors = new ArrayList<>();
+                Map<String, EmoteAnimation> parsed = AnimationParser.parse(json, errors);
+                errors.forEach(error -> PlayerEmotes.LOGGER.error("Failed to load from {}: {}", fileId, error));
+                includes.remember(fileId, parsed, json.get("includes"));
+                if (json.has("includes")) {
+                    including.put(fileId, source);
+                }
+
+                for (Map.Entry<String, EmoteAnimation> entry : parsed.entrySet()) {
                     ResourceLocation id = PlayerEmotes.id(fileId.getNamespace(), entry.getKey());
                     if (animations.put(id, entry.getValue()) != null) {
                         PlayerEmotes.LOGGER.warn("Animation {} is defined more than once (last one in {} wins)", id, fileId);
@@ -174,6 +187,18 @@ public final class EmoteRegistry {
                 }
             } catch (Exception e) {
                 PlayerEmotes.LOGGER.error("Failed to load {}: {}", fileId, e.getMessage());
+            }
+        }
+
+        // after every file, so includes find the emote folders complete. an animation that already exists stays,
+        // an emote folder file included elsewhere keeps its emotes where it is
+        for (Map.Entry<ResourceLocation, Source> file : including.entrySet()) {
+            Source source = file.getValue();
+            for (Map.Entry<String, EmoteAnimation> entry : includes.included(file.getKey()).entrySet()) {
+                ResourceLocation id = PlayerEmotes.id(file.getKey().getNamespace(), entry.getKey());
+                if (animations.putIfAbsent(id, entry.getValue()) == null) {
+                    source.animations.add(entry.getKey());
+                }
             }
         }
 
@@ -650,7 +675,7 @@ public final class EmoteRegistry {
     }
 
     // opens one emote file, from a resource pack or the server
-    private interface FileSource {
+    interface FileSource {
 
         Reader open() throws IOException;
     }

@@ -64,7 +64,7 @@ public final class EmoteRenderer {
             values[5] = part.zRot;
         }
 
-        frame.animation().sample(frame.seconds(), POSE);
+        frame.sample(POSE);
         SOLVER.solve(POSE, frame.look(), frame.weight());
 
         for (int i = 0; i < parts.length; i++) {
@@ -159,7 +159,7 @@ public final class EmoteRenderer {
 
     // applies the whole body (body bone) transform, call right after setupRotations
     public static void poseBody(PoseStack poseStack, EmotePlayback.Frame frame) {
-        frame.animation().sample(frame.seconds(), POSE);
+        frame.sample(POSE);
         if (!POSE.hasRotation(Part.BODY) && !POSE.hasPosition(Part.BODY)) {
             return;
         }
@@ -180,7 +180,7 @@ public final class EmoteRenderer {
     // takes the body bone transform back out of a pose stack in model space (as render layers get it), for things
     // that stay on the ground while the emote moves the body
     public static void undoBody(PoseStack poseStack, EmotePlayback.Frame frame) {
-        frame.animation().sample(frame.seconds(), POSE);
+        frame.sample(POSE);
         if (!POSE.hasRotation(Part.BODY) && !POSE.hasPosition(Part.BODY)) {
             return;
         }
@@ -249,7 +249,7 @@ public final class EmoteRenderer {
         torso[1] = Part.TORSO.originY;
         torso[2] = Part.TORSO.originZ;
         torso[3] = torso[4] = torso[5] = 0;
-        frame.animation().sample(frame.seconds(), POSE);
+        frame.sample(POSE);
         SOLVER.solve(POSE, frame.look(), frame.weight());
         // same as ModelPart#translateAndRotate
         poseStack.translate(torso[0] / 16F, torso[1] / 16F, torso[2] / 16F);
@@ -271,7 +271,7 @@ public final class EmoteRenderer {
             values[3] = values[4] = values[5] = 0;
         }
 
-        frame.animation().sample(frame.seconds(), POSE);
+        frame.sample(POSE);
         SOLVER.solve(POSE, frame.look(), frame.weight());
 
         // transforms the player renderer applies, see PlayerRendererMixin

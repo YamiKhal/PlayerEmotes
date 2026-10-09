@@ -15,6 +15,8 @@ public final class Pose implements Molang.Context {
     private final double[] scratch = new double[3];
     private double animTime;
     private double lifeTime;
+    // answers player queries while sampling, null gives 0
+    private Query.Source queries;
 
     void reset() {
         Arrays.fill(this.hasRotation, false);
@@ -24,6 +26,11 @@ public final class Pose implements Molang.Context {
     void setTimes(double animTime, double lifeTime) {
         this.animTime = animTime;
         this.lifeTime = lifeTime;
+    }
+
+    // who query.* keyframes ask, set before sampling (see EmotePlayback.Frame#sample)
+    public void setQueries(Query.Source queries) {
+        this.queries = queries;
     }
 
     double[] scratch() {
@@ -91,6 +98,11 @@ public final class Pose implements Molang.Context {
     @Override
     public double lifeTime() {
         return this.lifeTime;
+    }
+
+    @Override
+    public double query(Query query) {
+        return this.queries != null ? this.queries.query(query) : 0;
     }
 
     // Molang like math.sqrt(-1) gives NaN, that makes the whole player vanish

@@ -115,7 +115,12 @@ public final class EmotePlayers {
         }
 
         EmotePlayback playback = PLAYING.get(player);
-        return playback == null ? null : playback.frame(time(partialTick));
+        if (playback == null) {
+            return null;
+        }
+
+        playback.queries.partialTick = partialTick;
+        return playback.frame(time(partialTick));
     }
 
     // forgets what played in the previous world and sets the replay clock, call before handling server messages
@@ -159,6 +164,7 @@ public final class EmotePlayers {
             playback.update(ticks);
             EmoteEffects.tick(minecraft, entry.getKey(), playback, ticks);
             Player player = minecraft.level == null ? null : minecraft.level.getPlayerByUUID(entry.getKey());
+            playback.queries.player = player;
             if (player != null) {
                 face(player, playback);
             }
@@ -187,6 +193,7 @@ public final class EmotePlayers {
         EmotePlayback playback = new EmotePlayback(emote, animation, options, startTime, ticks);
         ClientLevel level = Minecraft.getInstance().level;
         Player entity = level == null ? null : level.getPlayerByUUID(player);
+        playback.queries.player = entity;
         if (entity != null) {
             playback.yaw = entity.getYHeadRot();
         }
