@@ -1,6 +1,7 @@
 plugins {
     id("net.neoforged.moddev") version "2.0.148"
     id("neoforge-mutex")
+    id("me.modmuss50.mod-publish-plugin")
 }
 
 val mpPort = DevRuns.port(project)
@@ -107,3 +108,6 @@ tasks {
         into(rootProject.layout.buildDirectory.dir("libs/${project.property("mod.version")}"))
     }
 }
+
+// CurseForge + Modrinth uploads, see Publishing.kt
+Publishing.configure(project, "neoforge", tasks.jar.flatMap { it.archiveFile }, requiredJava)

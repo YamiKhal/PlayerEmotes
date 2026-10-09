@@ -2,6 +2,7 @@ plugins {
     // ModDevGradle's Forge (pre-NeoForge) variant, used for 1.20.1
     id("net.neoforged.moddev.legacyforge") version "2.0.148"
     id("neoforge-mutex")
+    id("me.modmuss50.mod-publish-plugin")
 }
 
 val mpPort = DevRuns.port(project)
@@ -122,3 +123,6 @@ tasks {
         into(rootProject.layout.buildDirectory.dir("libs/${project.property("mod.version")}"))
     }
 }
+
+// CurseForge + Modrinth uploads, see Publishing.kt
+Publishing.configure(project, "forge", tasks.named<Jar>("reobfJar").flatMap { it.archiveFile }, requiredJava)

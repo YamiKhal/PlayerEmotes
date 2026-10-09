@@ -1,6 +1,7 @@
 plugins {
     // Applies the correct Loom variant for the Minecraft version (remapping before 26.1, plain after)
     id("dev.kikugie.loom-back-compat")
+    id("me.modmuss50.mod-publish-plugin")
 }
 
 val mpPort = DevRuns.port(project)
@@ -120,3 +121,6 @@ tasks {
         into(rootProject.layout.buildDirectory.dir("libs/${project.property("mod.version")}"))
     }
 }
+
+// CurseForge + Modrinth uploads, see Publishing.kt
+Publishing.configure(project, "fabric", loomx.modJar.flatMap { it.archiveFile }, requiredJava)

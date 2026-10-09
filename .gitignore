@@ -48,3 +48,7 @@ SMOOTH.md
 workspace/
 .vscode
 PAGE.md
+CHANGELOG.md
+.env
+dev.cmd
+dev.ps1

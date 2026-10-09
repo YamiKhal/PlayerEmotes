@@ -3,6 +3,7 @@ import net.minecraftforge.gradle.SlimeLauncherOptions
 plugins {
     // ForgeGradle 7, used for Forge 1.21+ (Forge 1.20.1 uses build.legacyforge.gradle.kts)
     id("net.minecraftforge.gradle") version "7.0.40"
+    id("me.modmuss50.mod-publish-plugin")
 }
 
 val mpPort = DevRuns.port(project)
@@ -135,3 +136,6 @@ tasks {
         into(rootProject.layout.buildDirectory.dir("libs/${project.property("mod.version")}"))
     }
 }
+
+// CurseForge + Modrinth uploads, see Publishing.kt
+Publishing.configure(project, "forge", tasks.jar.flatMap { it.archiveFile }, requiredJava)
