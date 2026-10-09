@@ -62,6 +62,9 @@ public final class EmoteRenderer {
             values[3] = part.xRot;
             values[4] = part.yRot;
             values[5] = part.zRot;
+            values[6] = part.xScale;
+            values[7] = part.yScale;
+            values[8] = part.zScale;
         }
 
         frame.sample(POSE);
@@ -76,6 +79,9 @@ public final class EmoteRenderer {
             part.xRot = values[3];
             part.yRot = values[4];
             part.zRot = values[5];
+            part.xScale = values[6];
+            part.yScale = values[7];
+            part.zScale = values[8];
         }
 
         // MODEL_PARTS has the limbs last, in LIMBS order. player's setting wins over the emote's bend style
@@ -160,7 +166,7 @@ public final class EmoteRenderer {
     // applies the whole body (body bone) transform, call right after setupRotations
     public static void poseBody(PoseStack poseStack, EmotePlayback.Frame frame) {
         frame.sample(POSE);
-        if (!POSE.hasRotation(Part.BODY) && !POSE.hasPosition(Part.BODY)) {
+        if (!POSE.animates(Part.BODY)) {
             return;
         }
 
@@ -174,14 +180,23 @@ public final class EmoteRenderer {
         rotate(poseStack, Axis.ZP.rotation((float) (POSE.rotation(Part.BODY, 2) * weight)));
         rotate(poseStack, Axis.YP.rotation((float) (POSE.rotation(Part.BODY, 1) * weight)));
         rotate(poseStack, Axis.XP.rotation((float) (POSE.rotation(Part.BODY, 0) * weight)));
+        if (POSE.hasScale(Part.BODY)) {
+            poseStack.scale(bodyScale(0, weight), bodyScale(1, weight), bodyScale(2, weight));
+        }
+
         poseStack.translate(0, -pivot, 0);
+    }
+
+    // body bone scale blended from 1, around the hips like the template's body pivot
+    private static float bodyScale(int axis, float weight) {
+        return (float) (1 + (POSE.scale(Part.BODY, axis) - 1) * weight);
     }
 
     // takes the body bone transform back out of a pose stack in model space (as render layers get it), for things
     // that stay on the ground while the emote moves the body
     public static void undoBody(PoseStack poseStack, EmotePlayback.Frame frame) {
         frame.sample(POSE);
-        if (!POSE.hasRotation(Part.BODY) && !POSE.hasPosition(Part.BODY)) {
+        if (!POSE.animates(Part.BODY)) {
             return;
         }
 
@@ -195,6 +210,10 @@ public final class EmoteRenderer {
         float weight = frame.weight();
         double pivot = PoseSolver.BODY_PIVOT_Y * scale;
         poseStack.translate(0, pivot, 0);
+        if (POSE.hasScale(Part.BODY)) {
+            poseStack.scale(1 / bodyScale(0, weight), 1 / bodyScale(1, weight), 1 / bodyScale(2, weight));
+        }
+
         rotate(poseStack, Axis.XP.rotation((float) (-POSE.rotation(Part.BODY, 0) * weight)));
         rotate(poseStack, Axis.YP.rotation((float) (-POSE.rotation(Part.BODY, 1) * weight)));
         rotate(poseStack, Axis.ZP.rotation((float) (-POSE.rotation(Part.BODY, 2) * weight)));
@@ -220,6 +239,10 @@ public final class EmoteRenderer {
         model.body.zRot = 0;
         model.rightLeg.x = -1.9F;
         model.leftLeg.x = 1.9F;
+        for (ModelPart part : new ModelPart[]{model.head, model.body, model.rightArm, model.leftArm, model.rightLeg, model.leftLeg}) {
+            part.xScale = part.yScale = part.zScale = 1;
+        }
+
         for (ModelPart limb : new ModelPart[]{model.rightArm, model.leftArm, model.rightLeg, model.leftLeg}) {
             Bend bend = ((BendablePart) (Object) limb).playeremotes$bend();
             if (bend != null) {
@@ -249,12 +272,17 @@ public final class EmoteRenderer {
         torso[1] = Part.TORSO.originY;
         torso[2] = Part.TORSO.originZ;
         torso[3] = torso[4] = torso[5] = 0;
+        torso[6] = torso[7] = torso[8] = 1;
         frame.sample(POSE);
         SOLVER.solve(POSE, frame.look(), frame.weight());
         // same as ModelPart#translateAndRotate
         poseStack.translate(torso[0] / 16F, torso[1] / 16F, torso[2] / 16F);
         if (torso[3] != 0 || torso[4] != 0 || torso[5] != 0) {
             rotate(poseStack, new Quaternionf().rotationZYX(torso[5], torso[4], torso[3]));
+        }
+
+        if (torso[6] != 1 || torso[7] != 1 || torso[8] != 1) {
+            poseStack.scale(torso[6], torso[7], torso[8]);
         }
     }
 
@@ -269,6 +297,7 @@ public final class EmoteRenderer {
             values[1] = modelPart.originY;
             values[2] = modelPart.originZ;
             values[3] = values[4] = values[5] = 0;
+            values[6] = values[7] = values[8] = 1;
         }
 
         frame.sample(POSE);
@@ -287,6 +316,7 @@ public final class EmoteRenderer {
         float[] values = SOLVER.parts[part.ordinal()];
         stack.translate(values[0] / 16F, values[1] / 16F, values[2] / 16F);
         rotate(stack, new Quaternionf().rotationZYX(values[5], values[4], values[3]));
+        stack.scale(values[6], values[7], values[8]);
         float[] end = LOCATOR_ENDS[part.ordinal()];
         // hands and feet follow a bent limb's lower half, which turns around the joint in the limb's middle
         if (part.isLimb() && SOLVER.bent[part.lower().ordinal()]

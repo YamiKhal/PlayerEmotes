@@ -5,6 +5,7 @@ import java.util.Arrays;
 // one evaluated animation frame, already in Minecraft space:
 // - model parts: position in pixels (x, -y, z), rotation in radians (x, y, z)
 // - BODY: position in blocks (-x/16, y/16, z/16), rotation in radians (-x, -y, z), applied to the pose stack
+// - scale as in Blockbench for all, 1 when not animated
 // also the Molang context while the frame is evaluated
 public final class Pose implements Molang.Context {
 
@@ -12,6 +13,11 @@ public final class Pose implements Molang.Context {
     private final double[][] position = new double[Part.VALUES.length][3];
     private final boolean[] hasRotation = new boolean[Part.VALUES.length];
     private final boolean[] hasPosition = new boolean[Part.VALUES.length];
+    private final double[][] scale = new double[Part.VALUES.length][3];
+    private final boolean[] hasScale = new boolean[Part.VALUES.length];
+    public static final double MIN_SCALE = 1.0E-4;
+    public static final double MAX_SCALE = 16;
+
     private final double[] scratch = new double[3];
     private double animTime;
     private double lifeTime;
@@ -21,6 +27,7 @@ public final class Pose implements Molang.Context {
     void reset() {
         Arrays.fill(this.hasRotation, false);
         Arrays.fill(this.hasPosition, false);
+        Arrays.fill(this.hasScale, false);
     }
 
     void setTimes(double animTime, double lifeTime) {
@@ -74,12 +81,38 @@ public final class Pose implements Molang.Context {
         this.hasPosition[part.ordinal()] = true;
     }
 
+    // factors kept off 0 (Blockbench's way to hide a bone) so matrices stay invertible, and below MAX_SCALE so server
+    // packs can't fill the screen with one player
+    void setScale(Part part, double[] factors) {
+        double[] s = this.scale[part.ordinal()];
+        for (int axis = 0; axis < 3; axis++) {
+            double value = Double.isFinite(factors[axis]) ? factors[axis] : 1;
+            double size = Math.max(MIN_SCALE, Math.min(MAX_SCALE, Math.abs(value)));
+            s[axis] = value < 0 ? -size : size;
+        }
+
+        this.hasScale[part.ordinal()] = true;
+    }
+
     public boolean hasRotation(Part part) {
         return this.hasRotation[part.ordinal()];
     }
 
     public boolean hasPosition(Part part) {
         return this.hasPosition[part.ordinal()];
+    }
+
+    public boolean hasScale(Part part) {
+        return this.hasScale[part.ordinal()];
+    }
+
+    // whether the animation moves the part in any way
+    public boolean animates(Part part) {
+        return this.hasRotation[part.ordinal()] || this.hasPosition[part.ordinal()] || this.hasScale[part.ordinal()];
+    }
+
+    public double scale(Part part, int axis) {
+        return this.hasScale[part.ordinal()] ? this.scale[part.ordinal()][axis] : 1;
     }
 
     public double rotation(Part part, int axis) {

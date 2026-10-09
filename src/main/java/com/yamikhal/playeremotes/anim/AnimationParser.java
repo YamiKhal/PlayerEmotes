@@ -21,7 +21,7 @@ import java.util.Set;
 // reads Bedrock animation files from Blockbench (*.animation.json): animation_length, loop (true, false,
 // "hold_on_last_frame"), rotation/position as constants or keyframes, pre/post, lerp_mode (linear, catmullrom,
 // step), GeckoLib / AzureLib easing/easingArgs, Molang values and sound_effects / particle_effects keyframes. bones
-// outside the skeleton are kept as prop bones (rotation, position and scale), scale of skeleton bones is skipped.
+// outside the skeleton are kept as prop bones, every bone has rotation, position and scale (lower limbs only rotate).
 // AzureLib "timeline" instruction keyframes only mean something to the mod that made them, skipped
 public final class AnimationParser {
 
@@ -102,16 +102,17 @@ public final class AnimationParser {
                     JsonObject boneNode = bone.getValue().getAsJsonObject();
                     Channel rotation = readChannel(boneNode.get("rotation"));
                     Channel position = readChannel(boneNode.get("position"));
-                    if (rotation == null && position == null) continue;
+                    Channel scale = readChannel(boneNode.get("scale"));
+                    if (rotation == null && position == null && scale == null) continue;
 
-                    bones.put(part, new EmoteAnimation.Bone(rotation, position));
+                    bones.put(part, new EmoteAnimation.Bone(rotation, position, scale));
                     if (alias) {
                         aliased.add(part);
                     } else {
                         aliased.remove(part);
                     }
 
-                    channels = new Channel[]{rotation, position};
+                    channels = new Channel[]{rotation, position, scale};
                 } else {
                     EmoteAnimation.PropBone prop = readPropBone(bone.getValue());
                     if (prop == null || props.size() >= MAX_PROP_BONES) continue;

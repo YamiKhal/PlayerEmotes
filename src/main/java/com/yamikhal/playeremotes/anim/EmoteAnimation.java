@@ -17,8 +17,8 @@ public record EmoteAnimation(String name, double length, LoopMode loop, Map<Part
         HOLD
     }
 
-    // either channel may be null
-    public record Bone(Channel rotation, Channel position) {}
+    // any channel may be null
+    public record Bone(Channel rotation, Channel position, Channel scale) {}
 
     // bone an AnimatedProp hangs on, any channel may be null
     public record PropBone(Channel rotation, Channel position, Channel scale) {}
@@ -93,6 +93,11 @@ public record EmoteAnimation(String name, double length, LoopMode loop, Map<Part
             if (bone.position() != null) {
                 bone.position().sample(animTime, out, tmp);
                 out.setPosition(part, tmp);
+            }
+
+            if (bone.scale() != null) {
+                bone.scale().sample(animTime, out, tmp);
+                out.setScale(part, tmp);
             }
         }
     }
