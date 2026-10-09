@@ -63,6 +63,19 @@ public final class Canvas {
         this.texture(texture, x, y, size, size, 0, 0, 16, 16, 16, 16);
     }
 
+    // draws a whole size x size texture above everything drawn before, previews included
+    public void overlay(ResourceLocation texture, int x, int y, int size) {
+        //? if >=1.21.6 {
+        /*this.graphics.nextStratum();
+        *///?} else {
+        this.graphics.pose().pushPose();
+        this.graphics.pose().translate(0, 0, 200);
+        //?}
+        this.texture(texture, x, y, size, size, 0, 0, size, size, size, size);
+        //? if <1.21.6
+        this.graphics.pose().popPose();
+    }
+
     public void fill(int x1, int y1, int x2, int y2, int color) {
         this.graphics.fill(x1, y1, x2, y2, color);
     }

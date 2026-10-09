@@ -119,6 +119,10 @@ public final class EmoteWheel {
                     canvas.text(font, line, left + (this.cellWidth - font.width(line)) / 2, textTop + i * 10, 0xFFFFFFFF, true);
                 }
             }
+
+            if (emote.partner() != null) {
+                PreviewRenderer.drawPartnerIcon(canvas, left + this.cellWidth - 1, top + this.cellHeight - 1);
+            }
         }
 
         String pageText = String.valueOf(page + 1);

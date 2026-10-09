@@ -34,6 +34,9 @@ public final class PreviewRenderer {
 
     // shaded white skin, when there is no local player to take the skin from
     public static final ResourceLocation SKIN = PlayerEmotes.id("textures/entity/preview_skin.png");
+    // marks partner emotes, bottom right of their preview
+    private static final ResourceLocation PARTNER_ICON = PlayerEmotes.id("textures/gui/partner.png");
+    private static final int PARTNER_ICON_SIZE = 8;
     // pixels per block, relative to preview height
     static final float SCALE = 0.44F;
     // turns the model a bit away from the camera so it looks 3D
@@ -52,6 +55,11 @@ public final class PreviewRenderer {
     //?}
 
     private PreviewRenderer() {}
+
+    // partner emote mark in the bottom right corner of the preview area ending at x1, y1
+    public static void drawPartnerIcon(Canvas canvas, int x1, int y1) {
+        canvas.overlay(PARTNER_ICON, x1 - PARTNER_ICON_SIZE - 1, y1 - PARTNER_ICON_SIZE - 1, PARTNER_ICON_SIZE);
+    }
 
     public static void draw(Canvas canvas, EmotePlayback.Frame frame, int x0, int y0, int x1, int y1) {
         float scale = (y1 - y0) * SCALE;

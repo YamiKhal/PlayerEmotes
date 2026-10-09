@@ -242,6 +242,10 @@ public final class EmoteList {
                 PreviewRenderer.draw(canvas, frame, left + 1, top, left + 1 + PREVIEW_WIDTH, top + PREVIEW_HEIGHT);
             }
 
+            if (emote.partner() != null) {
+                PreviewRenderer.drawPartnerIcon(canvas, left + 1 + PREVIEW_WIDTH, top + PREVIEW_HEIGHT);
+            }
+
             textLeft += PREVIEW_WIDTH + 7;
         }
 

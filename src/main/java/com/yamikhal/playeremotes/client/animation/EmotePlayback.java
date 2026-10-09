@@ -28,6 +28,9 @@ public final class EmotePlayback {
     // message that started the partner emote, to record it again (see FlashbackCompat)
     @Nullable
     private EmoteNetwork.PartnerPlay partnerPlay;
+    // where the emote faces (Minecraft yaw degrees), the head's facing when it started, NaN until the player is seen
+    // (see EmotePlayers#face)
+    float yaw = Float.NaN;
     // seconds into the emote its effect keyframes were played up to, NaN before the first tick
     double effectTime = Double.NaN;
     // made on first use (see EmoteProps)
@@ -119,21 +122,30 @@ public final class EmotePlayback {
             return null;
         }
 
-        float elapsed = now - this.startTime;
-        float weight = this.options.blendInTicks() > 0 ? smooth(elapsed / this.options.blendInTicks()) : 1;
-        if (this.isStopping()) {
-            float out = this.options.blendOutTicks() > 0 ? 1 - (now - this.stopTime) / this.options.blendOutTicks() : 0;
-            weight = Math.min(weight, smooth(out));
-            // freeze on the frame the emote stopped at while blending out
-            elapsed = Math.min(elapsed, this.stopTime - this.startTime);
-        }
-
+        float weight = this.weight(now);
         if (weight <= 0) {
             return null;
         }
 
+        float elapsed = now - this.startTime;
+        if (this.isStopping()) {
+            // freeze on the frame the emote stopped at while blending out
+            elapsed = Math.min(elapsed, this.stopTime - this.startTime);
+        }
+
         return new Frame(animation, elapsed / 20.0, weight, this.options.look(), this.options.splitLimbs(), this.link,
                 this.options.prop(), this.options.props());
+    }
+
+    // blend from vanilla (0) to the emote (1)
+    float weight(float now) {
+        float weight = this.options.blendInTicks() > 0 ? smooth((now - this.startTime) / this.options.blendInTicks()) : 1;
+        if (this.isStopping()) {
+            float out = this.options.blendOutTicks() > 0 ? 1 - (now - this.stopTime) / this.options.blendOutTicks() : 0;
+            weight = Math.min(weight, smooth(out));
+        }
+
+        return weight;
     }
 
     private static float smooth(float t) {

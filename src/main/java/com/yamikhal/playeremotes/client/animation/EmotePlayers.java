@@ -5,6 +5,8 @@ import com.yamikhal.playeremotes.network.EmoteNetwork;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.util.Mth;
+import net.minecraft.world.entity.player.Player;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Collections;
@@ -156,18 +158,39 @@ public final class EmotePlayers {
             EmotePlayback playback = entry.getValue();
             playback.update(ticks);
             EmoteEffects.tick(minecraft, entry.getKey(), playback, ticks);
+            Player player = minecraft.level == null ? null : minecraft.level.getPlayerByUUID(entry.getKey());
+            if (player != null) {
+                face(player, playback);
+            }
+
             // jumping back in a replay can leave emotes that did not start yet
-            boolean unloaded = prune && ticks - playback.receivedAt() > UNLOADED_GRACE_TICKS
-                    && minecraft.level.getPlayerByUUID(entry.getKey()) == null;
+            boolean unloaded = prune && ticks - playback.receivedAt() > UNLOADED_GRACE_TICKS && player == null;
             if (playback.isDone(ticks) || (replay && playback.startTime() > ticks + 1) || unloaded) {
                 iterator.remove();
             }
         }
     }
 
+    // turns the body to where the head faced when the emote started (partner emotes: their spot's facing), vanilla
+    // lets the body lag behind the head so it could face a wall. runs after entities ticked, overrides vanilla's body turn
+    private static void face(Player player, EmotePlayback playback) {
+        if (Float.isNaN(playback.yaw)) {
+            playback.yaw = player.getYHeadRot();
+        }
+
+        float yaw = playback.link() != null ? playback.link().yaw() : playback.yaw;
+        player.yBodyRot += Mth.wrapDegrees(yaw - player.yBodyRot) * playback.weight(ticks);
+    }
+
     private static EmotePlayback startAt(UUID player, @Nullable ResourceLocation emote, ResourceLocation animation,
                                          EmoteNetwork.Options options, float startTime) {
         EmotePlayback playback = new EmotePlayback(emote, animation, options, startTime, ticks);
+        ClientLevel level = Minecraft.getInstance().level;
+        Player entity = level == null ? null : level.getPlayerByUUID(player);
+        if (entity != null) {
+            playback.yaw = entity.getYHeadRot();
+        }
+
         PLAYING.put(player, playback);
         return playback;
     }
