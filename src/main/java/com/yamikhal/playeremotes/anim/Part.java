@@ -36,6 +36,8 @@ public enum Part {
     // limbs that bend at their middle, and their lower halves (same order)
     public static final Part[] LIMBS = {RIGHT_ARM, LEFT_ARM, RIGHT_LEG, LEFT_LEG};
     public static final Part[] LOWER_LIMBS = {RIGHT_LOWER_ARM, LEFT_LOWER_ARM, RIGHT_LOWER_LEG, LEFT_LOWER_LEG};
+    // AzureLib / GeckoLib humanoid rig bone prefixes, longest first
+    private static final String[] RIG_PREFIXES = {"armorbiped", "biped", "armor"};
 
     public final Part parent;
     public final float pivotX;
@@ -102,9 +104,6 @@ public enum Part {
     public static boolean isOwnBoneName(String bone) {
         return byKey(key(bone)) != null;
     }
-
-    // humanoid rig prefixes, longest first
-    private static final String[] RIG_PREFIXES = {"armorbiped", "biped", "armor"};
 
     private static String key(String bone) {
         return bone.toLowerCase(Locale.ROOT).replace("_", "").replace("-", "").replace(".", "").replace(" ", "");

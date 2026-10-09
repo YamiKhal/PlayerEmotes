@@ -82,6 +82,7 @@ public final class PoseSolver {
             if (this.vanillaScaled[part.ordinal()]) {
                 scaleColumns(vanilla, values[6], values[7], values[8]);
             }
+
             vanilla[9] = values[0];
             vanilla[10] = values[1];
             vanilla[11] = values[2];

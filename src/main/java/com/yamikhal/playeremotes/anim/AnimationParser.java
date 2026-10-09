@@ -21,7 +21,7 @@ import java.util.Set;
 // reads Bedrock animation files from Blockbench (*.animation.json): animation_length, loop (true, false,
 // "hold_on_last_frame"), rotation/position as constants or keyframes, pre/post, lerp_mode (linear, catmullrom,
 // step), GeckoLib / AzureLib easing/easingArgs, Molang values and sound_effects / particle_effects keyframes. bones
-// outside the skeleton are kept as prop bones, every bone has rotation, position and scale (lower limbs only rotate).
+// outside the skeleton are kept as prop bones, every bone has rotation, position and scale (lower limbs only rotate)
 // AzureLib "timeline" instruction keyframes only mean something to the mod that made them, skipped
 public final class AnimationParser {
 
