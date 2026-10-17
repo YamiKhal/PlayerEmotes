@@ -1,0 +1,11 @@
+{
+  "name": "My Emotes",
+  "description": "My own emotes",
+  "author": "You",
+  "version": "1.0.0",
+  "emotes": {
+    "example_wave": {
+      "look": false
+    }
+  }
+}

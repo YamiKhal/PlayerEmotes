@@ -1,0 +1,10 @@
+{
+  "pack": {
+    "pack_format": 48,
+    "supported_formats": [
+      15,
+      99
+    ],
+    "description": "Emotes sent to players by the server"
+  }
+}
