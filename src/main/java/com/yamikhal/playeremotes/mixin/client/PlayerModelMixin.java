@@ -24,6 +24,7 @@ import net.minecraft.client.renderer.entity.state.PlayerRenderState;
 import com.yamikhal.playeremotes.client.animation.EmotePlayers;
 import net.minecraft.client.player.AbstractClientPlayer;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.player.Player;
 //?}
 
 // poses players once PlayerModel finished its own setup, where other mods change the pose too. priority applies
@@ -32,6 +33,28 @@ import net.minecraft.world.entity.LivingEntity;
 // animations. emote blends from whatever pose they made
 @Mixin(value = PlayerModel.class, priority = 3000)
 public abstract class PlayerModelMixin {
+
+    // resets the parts before HumanoidModel#setupAnim runs, mods that cancel and rewrite that method (FastAnim) skip
+    // the reset there, emote offsets would pile up every frame and pull head and torso off the body
+    //? if >=1.21.9 {
+    /*@Inject(method = "setupAnim(Lnet/minecraft/client/renderer/entity/state/AvatarRenderState;)V", at = @At("HEAD"))
+    private void playeremotes$resetPose(AvatarRenderState state, CallbackInfo ci) {
+        ((PlayerModel) (Object) this).resetPose();
+    }
+    *///?} elif >=1.21.2 {
+    /*@Inject(method = "setupAnim(Lnet/minecraft/client/renderer/entity/state/PlayerRenderState;)V", at = @At("HEAD"))
+    private void playeremotes$resetPose(PlayerRenderState state, CallbackInfo ci) {
+        ((PlayerModel) (Object) this).resetPose();
+    }
+    *///?} else {
+    @Inject(method = "setupAnim(Lnet/minecraft/world/entity/LivingEntity;FFFFF)V", at = @At("HEAD"))
+    private void playeremotes$resetPose(LivingEntity entity, float limbSwing, float limbSwingAmount, float ageInTicks,
+                                        float netHeadYaw, float headPitch, CallbackInfo ci) {
+        if (entity instanceof Player) {
+            EmoteRenderer.resetPose((PlayerModel<?>) (Object) this);
+        }
+    }
+    //?}
 
     //? if >=1.21.9 {
     /*@Inject(method = "setupAnim(Lnet/minecraft/client/renderer/entity/state/AvatarRenderState;)V", at = @At("RETURN"))

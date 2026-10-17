@@ -3,7 +3,7 @@
 mod.id = "playeremotes"
 mod.name = "PlayerEmotes"
 mod.group = "com.yamikhal.playeremotes"
-mod.version = "2.0.0"
+mod.version = "2.0.1"
 mod.authors = "Yamikhal"
 mod.description = "Allows players to express themselves using emotes."
 mod.license = "MIT"

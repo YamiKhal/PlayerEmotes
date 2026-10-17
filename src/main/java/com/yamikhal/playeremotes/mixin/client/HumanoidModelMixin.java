@@ -52,7 +52,7 @@ public abstract class HumanoidModelMixin {
     @Inject(method = "setupAnim(Lnet/minecraft/world/entity/LivingEntity;FFFFF)V", at = @At("HEAD"))
     private void playeremotes$resetPose(LivingEntity entity, float limbSwing, float limbSwingAmount, float ageInTicks,
                                         float netHeadYaw, float headPitch, CallbackInfo ci) {
-        if (entity instanceof Player) {
+        if (entity instanceof Player && !((Object) this instanceof PlayerModel)) {
             EmoteRenderer.resetPose((HumanoidModel<?>) (Object) this);
         }
     }
