@@ -3,7 +3,7 @@
 mod.id = "playeremotes"
 mod.name = "PlayerEmotes"
 mod.group = "com.yamikhal.playeremotes"
-mod.version = "2.0.1"
+mod.version = "2.0.3"
 mod.authors = "Yamikhal"
 mod.description = "Allows players to express themselves using emotes."
 mod.license = "MIT"
@@ -60,7 +60,6 @@ deps.forge = "1.21.4-54.1.18"
 mod.mc_releases = ["1.21.11"]
 
 [fabric."1.21.11"]
-mod.version = "2.0.1.1"
 mod.mc_compat = "1.21.11"
 deps.fabric_api = "0.141.6+1.21.11"
 

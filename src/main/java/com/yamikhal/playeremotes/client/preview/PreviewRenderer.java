@@ -11,6 +11,7 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.math.Axis;
 import com.yamikhal.playeremotes.client.animation.EmoteProps;
 import com.yamikhal.playeremotes.client.animation.EmoteRenderer;
+import com.yamikhal.playeremotes.client.compat.EmfCompat;
 import com.yamikhal.playeremotes.network.AnimatedProp;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.model.PlayerModel;
@@ -83,6 +84,7 @@ public final class PreviewRenderer {
         AbstractClientPlayer player = Minecraft.getInstance().player;
         ResourceLocation texture = player != null ? skinTexture(player) : SKIN;
         var model = model(player != null && isSlim(player));
+        EmfCompat.beginPreview(player);
         //? if >=1.21.2 {
         /*model.resetPose();
         *///?} else {
@@ -106,6 +108,7 @@ public final class PreviewRenderer {
         canvas.graphics.flush();
         //?}
         drawProps(canvas, model, frame, player);
+        EmfCompat.endPreview();
         Lighting.setupFor3DItems();
         pose.popPose();
         canvas.endScissor();

@@ -4,12 +4,15 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import com.yamikhal.playeremotes.client.animation.EmotePlayback;
 import com.yamikhal.playeremotes.client.animation.EmoteRenderer;
 import net.minecraft.client.model.HumanoidModel;
+import net.minecraft.client.model.geom.PartPose;
 import net.minecraft.world.entity.HumanoidArm;
+import org.jetbrains.annotations.Nullable;
 //? if >=1.21.11 {
 /*import net.minecraft.client.model.player.PlayerModel;
 *///?} else
 import net.minecraft.client.model.PlayerModel;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
@@ -34,22 +37,33 @@ import net.minecraft.world.entity.player.Player;
 @Mixin(value = PlayerModel.class, priority = 3000)
 public abstract class PlayerModelMixin {
 
+    // emote arm poses of the last setup, null without an emote
+    @Unique
+    @Nullable
+    private PartPose playeremotes$leftArm;
+    @Unique
+    @Nullable
+    private PartPose playeremotes$rightArm;
+
     // resets the parts before HumanoidModel#setupAnim runs, mods that cancel and rewrite that method (FastAnim) skip
     // the reset there, emote offsets would pile up every frame and pull head and torso off the body
     //? if >=1.21.9 {
     /*@Inject(method = "setupAnim(Lnet/minecraft/client/renderer/entity/state/AvatarRenderState;)V", at = @At("HEAD"))
     private void playeremotes$resetPose(AvatarRenderState state, CallbackInfo ci) {
+        this.playeremotes$storeArms(false);
         ((PlayerModel) (Object) this).resetPose();
     }
     *///?} elif >=1.21.2 {
     /*@Inject(method = "setupAnim(Lnet/minecraft/client/renderer/entity/state/PlayerRenderState;)V", at = @At("HEAD"))
     private void playeremotes$resetPose(PlayerRenderState state, CallbackInfo ci) {
+        this.playeremotes$storeArms(false);
         ((PlayerModel) (Object) this).resetPose();
     }
     *///?} else {
     @Inject(method = "setupAnim(Lnet/minecraft/world/entity/LivingEntity;FFFFF)V", at = @At("HEAD"))
     private void playeremotes$resetPose(LivingEntity entity, float limbSwing, float limbSwingAmount, float ageInTicks,
                                         float netHeadYaw, float headPitch, CallbackInfo ci) {
+        this.playeremotes$storeArms(false);
         if (entity instanceof Player) {
             EmoteRenderer.resetPose((PlayerModel<?>) (Object) this);
         }
@@ -62,6 +76,7 @@ public abstract class PlayerModelMixin {
         EmotePlayback.Frame frame = ((EmoteRenderState) state).playeremotes$frame();
         if (frame != null) {
             EmoteRenderer.poseModel((PlayerModel) (Object) this, frame);
+            this.playeremotes$storeArms(true);
         }
     }
     *///?} elif >=1.21.2 {
@@ -70,6 +85,7 @@ public abstract class PlayerModelMixin {
         EmotePlayback.Frame frame = ((EmoteRenderState) state).playeremotes$frame();
         if (frame != null) {
             EmoteRenderer.poseModel((PlayerModel) (Object) this, frame);
+            this.playeremotes$storeArms(true);
         }
     }
     *///?} else {
@@ -94,8 +110,36 @@ public abstract class PlayerModelMixin {
         model.rightSleeve.copyFrom(model.rightArm);
         model.leftPants.copyFrom(model.leftLeg);
         model.rightPants.copyFrom(model.rightLeg);
+        this.playeremotes$storeArms(true);
     }
     //?}
+
+    @Unique
+    private void playeremotes$storeArms(boolean emoting) {
+        HumanoidModel<?> model = (HumanoidModel<?>) (Object) this;
+        this.playeremotes$leftArm = emoting ? model.leftArm.storePose() : null;
+        this.playeremotes$rightArm = emoting ? model.rightArm.storePose() : null;
+    }
+
+    // puts the emote arms back before items get placed, after mods that move them at HEAD (EMF Compat: Not Enough
+    // Animations restores NEA's torch arm there, the item would sit off the emote's hand)
+    //? if >=1.21.11 {
+    /*@Inject(method = "translateToHand(Lnet/minecraft/client/renderer/entity/state/AvatarRenderState;Lnet/minecraft/world/entity/HumanoidArm;Lcom/mojang/blaze3d/vertex/PoseStack;)V",
+            at = @At(value = "INVOKE", target = "Lnet/minecraft/client/model/player/PlayerModel;getArm(Lnet/minecraft/world/entity/HumanoidArm;)Lnet/minecraft/client/model/geom/ModelPart;"))
+    private void playeremotes$restoreArms(AvatarRenderState state, HumanoidArm arm, PoseStack poseStack, CallbackInfo ci) {
+    *///?} else {
+    @Inject(method = "translateToHand(Lnet/minecraft/world/entity/HumanoidArm;Lcom/mojang/blaze3d/vertex/PoseStack;)V",
+            at = @At(value = "INVOKE", target = "Lnet/minecraft/client/model/PlayerModel;getArm(Lnet/minecraft/world/entity/HumanoidArm;)Lnet/minecraft/client/model/geom/ModelPart;"))
+    private void playeremotes$restoreArms(HumanoidArm arm, PoseStack poseStack, CallbackInfo ci) {
+    //?}
+        if (this.playeremotes$leftArm == null || this.playeremotes$rightArm == null) {
+            return;
+        }
+
+        HumanoidModel<?> model = (HumanoidModel<?>) (Object) this;
+        model.leftArm.loadPose(this.playeremotes$leftArm);
+        model.rightArm.loadPose(this.playeremotes$rightArm);
+    }
 
     // held items and props sit in the hand of a bent arm
     //? if >=1.21.9 {

@@ -6,6 +6,7 @@ import com.yamikhal.playeremotes.PlayerEmotes;
 import com.yamikhal.playeremotes.client.animation.EmotePlayback;
 import com.yamikhal.playeremotes.client.animation.EmoteProps;
 import com.yamikhal.playeremotes.client.animation.EmoteRenderState;
+import com.yamikhal.playeremotes.client.compat.EmfCompat;
 import com.yamikhal.playeremotes.client.gui.Canvas;
 import com.yamikhal.playeremotes.mixin.client.GuiGraphicsAccessor;
 import com.yamikhal.playeremotes.network.AnimatedProp;
@@ -33,7 +34,8 @@ import net.minecraft.client.renderer.state.CameraRenderState;
 //?}
 //? if >=26.3 {
 /^import net.minecraft.client.renderer.SubmitNodeCollector;
-^///?} else
+import net.minecraft.client.renderer.state.gui.GuiRenderState;
+^///?}
 import net.minecraft.client.renderer.feature.FeatureRenderDispatcher;
 
 // draws previews through the deferred GUI renderer (1.21.9+). a vanilla picture-in-picture renderer shows only
@@ -87,6 +89,7 @@ public final class PreviewPictures {
         avatar.bodyRot = 180 + PreviewRenderer.YAW;
         avatar.boundingBoxWidth = 0.6F;
         avatar.boundingBoxHeight = 1.8F;
+        EmfCompat.attachPlayer(avatar, player);
         ((EmoteRenderState) avatar).playeremotes$setFrame(frame);
         setProps(avatar, frame, player);
 
@@ -272,7 +275,15 @@ public final class PreviewPictures {
         }
 
         //? if >=26.3 {
-        /^@Override
+        /^// features render after renderToTexture, still inside prepare
+        @Override
+        public void prepare(State state, GuiRenderState guiState, FeatureRenderDispatcher features, int guiScale) {
+            EmfCompat.beginPreview(Minecraft.getInstance().player);
+            super.prepare(state, guiState, features, guiScale);
+            EmfCompat.endPreview();
+        }
+
+        @Override
         protected void renderToTexture(State state, PoseStack poseStack, SubmitNodeCollector collector) {
             Minecraft minecraft = Minecraft.getInstance();
             PreviewLighting.setup();
@@ -288,8 +299,10 @@ public final class PreviewPictures {
             place(poseStack);
             poseStack.mulPose(new Quaternionf().rotateZ((float) Math.PI));
             FeatureRenderDispatcher features = minecraft.gameRenderer.getFeatureRenderDispatcher();
+            EmfCompat.beginPreview(minecraft.player);
             minecraft.getEntityRenderDispatcher().submit(state.avatar, new CameraRenderState(), 0, 0, 0, poseStack, features.getSubmitNodeStorage());
             features.renderAllFeatures();
+            EmfCompat.endPreview();
         }
         //?}
 

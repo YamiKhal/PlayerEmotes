@@ -93,6 +93,7 @@ public final class PlayerEmotesClient {
 
     public static void tick(Minecraft minecraft) {
         EmotePlayers.tick(minecraft);
+        EmfCompat.tick();
         DevShowcase.tick(minecraft);
         DevPartnerTest.tick(minecraft);
 
